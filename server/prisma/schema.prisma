@@ -21,6 +21,8 @@ model User {
   updatedAt     DateTime  @updatedAt
   profile       UserProfile?
   learningGoals LearningGoal[]
+  exercises     Exercise[]
+  progress      Progress[]
 }
 
 model UserProfile {
@@ -34,23 +36,91 @@ model UserProfile {
 }
 
 model ProgrammingLanguage {
-  id          String        @id @default(uuid())
-  name        String        @unique
-  profiles    UserProfile[]
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id                String        @id @default(uuid())
+  name              String        @unique
+  profiles          UserProfile[]
+  exercises         Exercise[]
+  learningGoals     LearningGoal[]
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
 }
 
 model LearningGoal {
+  id                String              @id @default(uuid())
+  title             String
+  description       String?
+  userId            String
+  user              User                @relation(fields: [userId], references: [id])
+  status            GoalStatus
+  deadline          DateTime?
+  exercises         Exercise[]
+  roadmap           Roadmap?
+  preferredLanguageId String
+  preferredLanguage ProgrammingLanguage @relation(fields: [preferredLanguageId], references: [id])
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+}
+
+model Roadmap {
+  id          String       @id @default(uuid())
+  goalId      String       @unique
+  goal        LearningGoal @relation(fields: [goalId], references: [id])
+  checkpoints Checkpoint[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model Checkpoint {
   id          String    @id @default(uuid())
   title       String
-  description String?
-  userId      String
-  user        User      @relation(fields: [userId], references: [id])
-  status      GoalStatus
-  deadline    DateTime?
+  description String
+  order       Int
+  status      CheckpointStatus
+  roadmapId   String
+  roadmap     Roadmap   @relation(fields: [roadmapId], references: [id])
+  exercises   Exercise[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  @@unique([roadmapId, order])
+}
+
+model Exercise {
+  id                String              @id @default(uuid())
+  title             String
+  description       String
+  difficulty        DifficultyLevel
+  languageId        String
+  language          ProgrammingLanguage @relation(fields: [languageId], references: [id])
+  goalId            String
+  goal              LearningGoal        @relation(fields: [goalId], references: [id])
+  checkpointId      String?
+  checkpoint        Checkpoint?         @relation(fields: [checkpointId], references: [id])
+  userId            String
+  user              User                @relation(fields: [userId], references: [id])
+  initialCode       String?             @db.Text
+  solution          String?             @db.Text
+  hints             String[]
+  testCases         Json?
+  progress          Progress[]
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+}
+
+model Progress {
+  id          String    @id @default(uuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  exerciseId  String
+  exercise    Exercise  @relation(fields: [exerciseId], references: [id])
+  status      ProgressStatus
+  code        String?   @db.Text
+  attempts    Int       @default(0)
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([userId, exerciseId], name: "userId_exerciseId")
 }
 
 enum SkillLevel {
@@ -65,4 +135,24 @@ enum GoalStatus {
   IN_PROGRESS
   COMPLETED
   ABANDONED
+}
+
+enum DifficultyLevel {
+  EASY
+  MEDIUM
+  HARD
+  EXPERT
+}
+
+enum ProgressStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+  ABANDONED
+}
+
+enum CheckpointStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
 }

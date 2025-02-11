@@ -93,22 +93,11 @@ export class AuthService {
     });
 
     // Create learning goals
-    const goals = await Promise.all(
-      dto.learningGoals.map(goal =>
-        this.prisma.learningGoal.create({
-          data: {
-            title: goal,
-            userId,
-            status: 'NOT_STARTED',
-          },
-        }),
-      ),
-    );
+    await this.createInitialGoals(userId, dto);
 
     return {
       message: 'Onboarding completed successfully',
       profile,
-      goals,
     };
   }
 
@@ -122,5 +111,30 @@ export class AuthService {
       secret: process.env.JWT_SECRET,
       expiresIn: '7d',
     });
+  }
+
+  private async createInitialGoals(userId: string, dto: OnboardingDto) {
+    // Get the default language (JavaScript)
+    const defaultLanguage = await this.prisma.programmingLanguage.findFirst({
+      where: { name: 'JavaScript' },
+    });
+
+    if (!defaultLanguage) {
+      throw new Error('Default programming language not found');
+    }
+
+    // Create initial goals
+    await Promise.all(
+      dto.learningGoals.map(goal =>
+        this.prisma.learningGoal.create({
+          data: {
+            title: goal,
+            userId,
+            status: 'NOT_STARTED',
+            preferredLanguageId: defaultLanguage.id,
+          },
+        }),
+      ),
+    );
   }
 } 

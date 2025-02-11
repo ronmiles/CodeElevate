@@ -13,10 +13,11 @@ async function bootstrap() {
     logger: ['error', 'warn', 'log', 'debug', 'verbose'], // Enable all log levels
   });
 
-  // Enable CORS
+  // Enable CORS with specific configuration
   app.enableCors({
-    origin: 'http://localhost:4200', // Your React app's URL
+    origin: ['http://localhost:4200', 'http://127.0.0.1:4200'], // Allow both localhost variations
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
+    allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
   });
 
@@ -25,16 +26,12 @@ async function bootstrap() {
 
   // Add request logging middleware
   app.use((req, res, next) => {
-    logger.log(`[${req.method}] ${req.url}`);
+    logger.log(`Incoming Request: [${req.method}] ${req.url}`);
+    logger.debug('Request Headers:', req.headers);
     
     // Safely check and log request body
-    if (req.body && typeof req.body === 'object' && Object.keys(req.body).length > 0) {
+    if (req.body && Object.keys(req.body).length > 0) {
       logger.debug('Request Body:', req.body);
-    }
-    
-    // Safely check and log query parameters
-    if (req.query && typeof req.query === 'object' && Object.keys(req.query).length > 0) {
-      logger.debug('Query Params:', req.query);
     }
     
     next();
@@ -42,7 +39,7 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3333;
   await app.listen(port);
-  logger.log(`🚀 Application is running on: http://localhost:${port}/api`);
+  logger.log(`🚀 Server is running on: http://localhost:${port}/api`);
 }
 
 bootstrap();

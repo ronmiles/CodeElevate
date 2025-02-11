@@ -1,12 +1,12 @@
 // Uncomment this line to use CSS modules
 // import styles from './app.module.css';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider, useAuth } from '../contexts/AuthContext';
-import { SignUp } from '../components/auth/SignUp';
+import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
 import { SignIn } from '../components/auth/SignIn';
-import { Onboarding } from '../components/auth/Onboarding';
+import { SignUp } from '../components/auth/SignUp';
 import { Dashboard } from '../components/dashboard/Dashboard';
+import { AuthProvider, useAuth } from '../contexts/AuthContext';
+import { LearningGoalPage } from '../pages/LearningGoalPage';
 
 const queryClient = new QueryClient();
 
@@ -24,43 +24,30 @@ export function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router>
-          <Routes>
-            <Route
-              path="/signup"
-              element={
-                <PublicRoute>
-                  <SignUp />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path="/signin"
-              element={
-                <PublicRoute>
-                  <SignIn />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path="/onboarding"
-              element={
-                <PrivateRoute>
-                  <Onboarding />
-                </PrivateRoute>
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                <PrivateRoute>
-                  <Dashboard />
-                </PrivateRoute>
-              }
-            />
-            <Route path="/" element={<Navigate to="/signin" />} />
-          </Routes>
-        </Router>
+      <Router>
+            <Routes>
+              <Route path="/signin" element={<SignIn />} />
+              <Route path="/signup" element={<SignUp />} />
+              <Route
+                path="/dashboard"
+                element={
+                  <PrivateRoute>
+                    <Dashboard />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/goal/:goalId"
+                element={
+                  <PrivateRoute>
+                    <LearningGoalPage />
+                  </PrivateRoute>
+                }
+              />
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </Router>
       </AuthProvider>
     </QueryClientProvider>
   );

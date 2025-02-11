@@ -1,22 +1,4 @@
-import axios from 'axios';
-
-const api = axios.create({
-  baseURL: 'http://localhost:3333/api',
-  timeout: 5000,
-  headers: {
-    'Content-Type': 'application/json',
-  },
-});
-
-export interface LearningGoal {
-  id: string;
-  title: string;
-  description?: string;
-  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ABANDONED';
-  deadline?: string;
-  createdAt: string;
-  updatedAt: string;
-}
+import { api } from './api';
 
 export interface CreateGoalData {
   title: string;
@@ -24,31 +6,33 @@ export interface CreateGoalData {
   deadline?: string;
 }
 
-const handleApiError = (error: any) => {
-  if (error.response) {
-    throw new Error(error.response.data.message || 'An error occurred');
-  } else if (error.request) {
-    throw new Error('No response from server. Please check if the server is running.');
-  } else {
-    throw new Error('Failed to make request. Please try again.');
-  }
-};
+export interface LearningGoal {
+  id: string;
+  title: string;
+  description?: string;
+  deadline?: string;
+  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ABANDONED';
+  createdAt: string;
+  updatedAt: string;
+  roadmap?: {
+    id: string;
+    checkpoints: Array<{
+      id: string;
+      title: string;
+      description: string;
+      status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+      order: number;
+    }>;
+  };
+  preferredLanguage: {
+    id: string;
+    name: string;
+  };
+}
 
 export const goalsApi = {
-  createGoal: async (data: CreateGoalData, token: string) => {
-    try {
-      const response = await api.post('/goals', data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      return response.data;
-    } catch (error) {
-      handleApiError(error);
-    }
-  },
-
-  getGoals: async (token: string) => {
+  async getGoals(token: string): Promise<LearningGoal[]> {
+    console.log('Fetching goals with token:', token);
     try {
       const response = await api.get('/goals', {
         headers: {
@@ -57,20 +41,72 @@ export const goalsApi = {
       });
       return response.data;
     } catch (error) {
-      handleApiError(error);
+      console.error('Error fetching goals:', error);
+      throw error;
     }
   },
 
-  updateGoalStatus: async (goalId: string, status: LearningGoal['status'], token: string) => {
+  async getGoal(goalId: string, token: string): Promise<LearningGoal> {
+    console.log('Fetching goal details:', { goalId, token });
     try {
-      const response = await api.patch(`/goals/${goalId}/status`, { status }, {
+      const response = await api.get(`/goals/${goalId}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
       return response.data;
     } catch (error) {
-      handleApiError(error);
+      console.error('Error fetching goal details:', error);
+      throw error;
+    }
+  },
+
+  async createGoal(data: CreateGoalData, token: string): Promise<LearningGoal> {
+    try {
+      const response = await api.post('/goals', data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error creating goal:', error);
+      throw error;
+    }
+  },
+
+  async updateGoalStatus(goalId: string, status: LearningGoal['status'], token: string): Promise<LearningGoal> {
+    try {
+      const response = await api.patch(
+        `/goals/${goalId}/status`,
+        { status },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error updating goal status:', error);
+      throw error;
+    }
+  },
+
+  async updateCheckpointStatus(checkpointId: string, status: string, token: string): Promise<void> {
+    try {
+      await api.patch(
+        `/goals/checkpoints/${checkpointId}/status`,
+        { status },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+    } catch (error) {
+      console.error('Error updating checkpoint status:', error);
+      throw error;
     }
   },
 }; 

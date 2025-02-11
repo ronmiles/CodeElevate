@@ -1,101 +1,188 @@
 # CodeElevate
 
-<a alt="Nx logo" href="https://nx.dev" target="_blank" rel="noreferrer"><img src="https://raw.githubusercontent.com/nrwl/nx/master/images/nx-logo.png" width="45"></a>
+CodeElevate is an AI-powered learning platform that helps developers master programming concepts through personalized learning paths and interactive exercises.
 
-✨ Your new, shiny [Nx workspace](https://nx.dev) is ready ✨.
+## Features
 
-[Learn more about this workspace setup and its capabilities](https://nx.dev/getting-started/tutorials/react-monorepo-tutorial?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects) or run `npx nx graph` to visually explore what was created. Now, let's get you up to speed!
+- 🎯 Personalized Learning Goals
+- 🗺️ AI-Generated Learning Roadmaps
+- 💻 Interactive Coding Exercises
+- 🤖 AI-Powered Exercise Generation
+- 📊 Progress Tracking
+- 🎨 Modern, Responsive UI
 
-## Run tasks
+## Tech Stack
 
-To run the dev server for your app, use:
+- **Frontend**:
+  - React with TypeScript
+  - Material-UI
+  - TanStack Query (React Query)
+  - Tailwind CSS
+  - Vite
 
-```sh
+- **Backend**:
+  - NestJS
+  - Prisma ORM
+  - PostgreSQL
+  - Groq AI
+  - JWT Authentication
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+- Node.js (v18 or higher)
+- pnpm (v8 or higher)
+- PostgreSQL (v14 or higher)
+- Git
+
+## Environment Setup
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/CodeElevate.git
+cd CodeElevate
+```
+
+2. Install dependencies:
+```bash
+pnpm install
+```
+
+3. Create environment files:
+
+Create `server/.env`:
+```env
+# Database
+DATABASE_URL="postgresql://username:password@localhost:5432/codeelevate"
+
+# JWT
+JWT_SECRET="your-jwt-secret"
+
+# AI Providers
+GROQ_API_KEY="your-groq-api-key"
+GROQ_MODEL="mixtral-8x7b-32768"
+GROQ_TEMPERATURE=0.7
+GROQ_MAX_TOKENS=2000
+
+# Optional Fallback
+OPENAI_API_KEY="your-openai-api-key"
+OPENAI_MODEL="gpt-3.5-turbo"
+OPENAI_TEMPERATURE=0.7
+OPENAI_MAX_TOKENS=2000
+```
+
+Create `apps/CodeElevate/.env`:
+```env
+VITE_API_URL="http://localhost:3333/api"
+```
+
+4. Set up the database:
+```bash
+# Navigate to server directory
+cd server
+
+# Generate Prisma client
+npx prisma generate
+
+# Run migrations
+npx prisma migrate dev
+
+# Seed the database (if available)
+npx prisma db seed
+```
+
+## Development
+
+1. Start the development servers:
+
+```bash
+# Start the backend server
+npx nx serve server
+
+# Start the frontend application (in a new terminal)
 npx nx serve CodeElevate
+
+# Or use the Nx Console extension in VS Code to run the tasks
 ```
 
-To create a production bundle:
+2. Access the application:
+- Frontend: http://localhost:4200
+- Backend API: http://localhost:3333/api
 
-```sh
-npx nx build CodeElevate
+## Project Structure
+
+```
+CodeElevate/
+├── apps/
+│   └── CodeElevate/        # Frontend React application
+│       ├── src/
+│       ├── public/
+│       └── index.html
+├── server/                 # Backend NestJS application
+│   ├── src/
+│   ├── prisma/
+│   └── test/
+├── package.json
+└── nx.json                 # Nx workspace configuration
 ```
 
-To see all available targets to run for a project, run:
+## Available Scripts
 
-```sh
-npx nx show project CodeElevate
-```
+- `npx nx serve server` - Start the backend development server
+- `npx nx serve CodeElevate` - Start the frontend development server
+- `npx nx build server` - Build the backend
+- `npx nx build CodeElevate` - Build the frontend
+- `npx nx test server` - Run backend tests
+- `npx nx test CodeElevate` - Run frontend tests
+- `npx nx lint server` - Lint backend code
+- `npx nx lint CodeElevate` - Lint frontend code
+- `npx nx format:write` - Format code with Prettier
 
-These targets are either [inferred automatically](https://nx.dev/concepts/inferred-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) or defined in the `project.json` or `package.json` files.
+## Database Management
 
-[More about running tasks in the docs &raquo;](https://nx.dev/features/run-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+- Generate Prisma client: `npx prisma generate`
+- Create a migration: `npx prisma migrate dev --name migration_name`
+- Reset database: `npx prisma migrate reset`
+- View database: `npx prisma studio`
 
-## Add new projects
+## Contributing
 
-While you could add new projects to your workspace manually, you might want to leverage [Nx plugins](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) and their [code generation](https://nx.dev/features/generate-code?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) feature.
+1. Fork the repository
+2. Create your feature branch: `git checkout -b feature/amazing-feature`
+3. Commit your changes: `git commit -m 'Add amazing feature'`
+4. Push to the branch: `git push origin feature/amazing-feature`
+5. Open a Pull Request
 
-Use the plugin's generator to create new projects.
+## Troubleshooting
 
-To generate a new application, use:
+### Common Issues
 
-```sh
-npx nx g @nx/react:app demo
-```
+1. **Database Connection Error**
+   - Verify PostgreSQL is running
+   - Check DATABASE_URL in `server/.env`
+   - Ensure database exists
 
-To generate a new library, use:
+2. **Prisma Issues**
+   - Run `npx prisma generate` after schema changes
+   - Run `npx prisma migrate reset` to reset database
+   - Check migration history with `npx prisma migrate status`
 
-```sh
-npx nx g @nx/react:lib mylib
-```
+3. **API Connection Issues**
+   - Verify API URL in `apps/CodeElevate/.env`
+   - Check if backend server is running
+   - Look for CORS issues in browser console
 
-You can use `npx nx list` to get a list of installed plugins. Then, run `npx nx list <plugin-name>` to learn about more specific capabilities of a particular plugin. Alternatively, [install Nx Console](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) to browse plugins and generators in your IDE.
+### Getting Help
 
-[Learn more about Nx plugins &raquo;](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) | [Browse the plugin registry &raquo;](https://nx.dev/plugin-registry?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+If you encounter any issues:
+1. Check the [Issues](https://github.com/yourusername/CodeElevate/issues) page
+2. Search for similar problems in closed issues
+3. Create a new issue with:
+   - Detailed description of the problem
+   - Steps to reproduce
+   - Error messages
+   - Environment details
 
-## Set up CI!
+## License
 
-### Step 1
-
-To connect to Nx Cloud, run the following command:
-
-```sh
-npx nx connect
-```
-
-Connecting to Nx Cloud ensures a [fast and scalable CI](https://nx.dev/ci/intro/why-nx-cloud?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects) pipeline. It includes features such as:
-
-- [Remote caching](https://nx.dev/ci/features/remote-cache?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task distribution across multiple machines](https://nx.dev/ci/features/distribute-task-execution?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Automated e2e test splitting](https://nx.dev/ci/features/split-e2e-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Task flakiness detection and rerunning](https://nx.dev/ci/features/flaky-tasks?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-### Step 2
-
-Use the following command to configure a CI workflow for your workspace:
-
-```sh
-npx nx g ci-workflow
-```
-
-[Learn more about Nx on CI](https://nx.dev/ci/intro/ci-with-nx#ready-get-started-with-your-provider?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Install Nx Console
-
-Nx Console is an editor extension that enriches your developer experience. It lets you run tasks, generate code, and improves code autocompletion in your IDE. It is available for VSCode and IntelliJ.
-
-[Install Nx Console &raquo;](https://nx.dev/getting-started/editor-setup?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-## Useful links
-
-Learn more:
-
-- [Learn more about this workspace setup](https://nx.dev/getting-started/tutorials/react-monorepo-tutorial?utm_source=nx_project&amp;utm_medium=readme&amp;utm_campaign=nx_projects)
-- [Learn about Nx on CI](https://nx.dev/ci/intro/ci-with-nx?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [Releasing Packages with Nx release](https://nx.dev/features/manage-releases?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-- [What are Nx plugins?](https://nx.dev/concepts/nx-plugins?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
-
-And join the Nx community:
-- [Discord](https://go.nx.dev/community)
-- [Follow us on X](https://twitter.com/nxdevtools) or [LinkedIn](https://www.linkedin.com/company/nrwl)
-- [Our Youtube channel](https://www.youtube.com/@nxdevtools)
-- [Our blog](https://nx.dev/blog?utm_source=nx_project&utm_medium=readme&utm_campaign=nx_projects)
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

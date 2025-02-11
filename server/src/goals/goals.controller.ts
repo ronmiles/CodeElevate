@@ -18,6 +18,11 @@ export class GoalsController {
     return this.goalsService.findAll(req.user.id);
   }
 
+  @Get(':id')
+  findOne(@Request() req, @Param('id') id: string) {
+    return this.goalsService.findOne(req.user.id, id);
+  }
+
   @Patch(':id/status')
   updateStatus(
     @Request() req,
@@ -25,5 +30,14 @@ export class GoalsController {
     @Body() updateGoalStatusDto: UpdateGoalStatusDto,
   ) {
     return this.goalsService.updateStatus(req.user.id, id, updateGoalStatusDto);
+  }
+
+  @Patch('checkpoints/:id/status')
+  updateCheckpointStatus(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() body: { status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' },
+  ) {
+    return this.goalsService.updateCheckpointStatus(req.user.id, id, body.status);
   }
 } 

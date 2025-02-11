@@ -83,6 +83,13 @@ export const Dashboard: React.FC = () => {
     updateGoalStatusMutation.mutate({ goalId, status });
   };
 
+  const handleGoalClick = (goalId: string) => {
+    console.log('Goal clicked:', goalId);
+    console.log('Current token:', token);
+    console.log('Navigating to:', `/goal/${goalId}`);
+    navigate(`/goal/${goalId}`);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <nav className="bg-secondary-background border-b border-border">
@@ -196,7 +203,8 @@ export const Dashboard: React.FC = () => {
               {goals?.map((goal: LearningGoal) => (
                 <div
                   key={goal.id}
-                  className="bg-secondary-background p-6 rounded-lg border border-border"
+                  className="bg-secondary-background p-6 rounded-lg border border-border cursor-pointer hover:shadow-lg transition-all duration-200"
+                  onClick={() => handleGoalClick(goal.id)}
                 >
                   <h3 className="text-lg font-medium text-text mb-2">{goal.title}</h3>
                   {goal.description && (
@@ -208,16 +216,19 @@ export const Dashboard: React.FC = () => {
                     </p>
                   )}
                   <div className="flex justify-between items-center">
-                    <select
-                      value={goal.status}
-                      onChange={(e) => handleStatusChange(goal.id, e.target.value as LearningGoal['status'])}
-                      className="bg-background text-text text-sm rounded-lg border border-border px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                    <div
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${
+                        goal.status === 'COMPLETED'
+                          ? 'bg-green-100 text-green-800'
+                          : goal.status === 'IN_PROGRESS'
+                          ? 'bg-blue-100 text-blue-800'
+                          : goal.status === 'ABANDONED'
+                          ? 'bg-red-100 text-red-800'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}
                     >
-                      <option value="NOT_STARTED">Not Started</option>
-                      <option value="IN_PROGRESS">In Progress</option>
-                      <option value="COMPLETED">Completed</option>
-                      <option value="ABANDONED">Abandoned</option>
-                    </select>
+                      {goal.status.replace('_', ' ')}
+                    </div>
                   </div>
                 </div>
               ))}
