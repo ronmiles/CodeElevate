@@ -1,0 +1,9 @@
+{
+  "name": "CodeElevate-e2e",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/CodeElevate-e2e/src",
+  "implicitDependencies": ["CodeElevate"],
+  "// targets": "to see all targets run: nx show project CodeElevate-e2e --web",
+  "targets": {}
+}
