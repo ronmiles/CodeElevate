@@ -1,1 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 /* You can add global styles to this file, and also import other style files */
+
+:root {
+  --primary: #6D28D9;
+  --primary-hover: #5B21B6;
+  --background: #0F172A;
+  --secondary-background: #1E293B;
+  --text: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --border: #334155;
+  --error: #EF4444;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--text);
+}
+
+.auth-input {
+  @apply appearance-none relative block w-full px-4 py-3 border rounded-lg bg-secondary-background text-text border-border placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200;
+}
+
+.auth-button {
+  @apply w-full flex justify-center py-3 px-4 border border-transparent rounded-lg text-sm font-medium text-white bg-primary hover:bg-primary-hover focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+}
+
+.auth-card {
+  @apply max-w-md w-full space-y-8 bg-secondary-background p-8 rounded-2xl shadow-xl border border-border;
+}
+
+.auth-title {
+  @apply text-center text-3xl font-bold text-text;
+}
+
+.auth-subtitle {
+  @apply mt-2 text-center text-sm text-text-secondary;
+}
+
+.auth-error {
+  @apply text-error text-sm text-center;
+}
+
+.auth-link {
+  @apply text-primary hover:text-primary-hover transition-colors duration-200;
+}
