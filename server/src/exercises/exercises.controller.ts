@@ -25,8 +25,8 @@ export class ExercisesController {
   @Post('generate')
   generateExercise(
     @Request() req,
-    @Query('goalId') goalId: string,
-    @Query('checkpointId') checkpointId: string,
+    @Body('goalId') goalId: string,
+    @Body('checkpointId') checkpointId: string,
   ) {
     return this.exercisesService.generateExercise(
       req.user.id,
