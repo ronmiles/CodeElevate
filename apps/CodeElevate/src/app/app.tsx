@@ -6,6 +6,7 @@ import { SignIn } from '../components/auth/SignIn';
 import { SignUp } from '../components/auth/SignUp';
 import { Dashboard } from '../components/dashboard/Dashboard';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
+import { ThemeProvider } from '../contexts/ThemeContext';
 import { LearningGoalPage } from '../pages/LearningGoalPage';
 
 const queryClient = new QueryClient();
@@ -23,8 +24,9 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 export function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-      <Router>
+      <ThemeProvider>
+        <AuthProvider>
+          <Router>
             <Routes>
               <Route path="/signin" element={<SignIn />} />
               <Route path="/signup" element={<SignUp />} />
@@ -48,7 +50,8 @@ export function App() {
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           </Router>
-      </AuthProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

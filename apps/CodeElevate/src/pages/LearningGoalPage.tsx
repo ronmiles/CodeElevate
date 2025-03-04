@@ -22,12 +22,33 @@ import CloseIcon from '@mui/icons-material/Close';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { goalsApi, LearningGoal } from '../api/goals.api';
-import { exercisesApi } from '../api/exercises.api';
+import { exercisesApi, Exercise } from '../api/exercises.api';
 import { useAuth } from '../hooks/useAuth';
 import { Checkpoint } from '../api/roadmap.api';
 import axios from 'axios';
+import { motion } from 'framer-motion';
+import { Navbar } from '../components/layout/Navbar';
 
-export const LearningGoalPage = () => {
+// Add scrollbar styling at the top of the file
+const scrollbarStyles = `
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: rgba(17, 24, 39, 0.1);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(75, 85, 99, 0.5);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(75, 85, 99, 0.7);
+  }
+`;
+
+export const LearningGoalPage: React.FC = () => {
   const { goalId } = useParams<{ goalId: string }>();
   const { token } = useAuth();
   const navigate = useNavigate();
@@ -39,6 +60,8 @@ export const LearningGoalPage = () => {
   const queryClient = useQueryClient();
   const [selectedCheckpoint, setSelectedCheckpoint] = useState<Checkpoint | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
 
   // Add logging when component mounts
   useEffect(() => {
@@ -77,7 +100,7 @@ export const LearningGoalPage = () => {
   });
 
   const { data: exercises, isLoading: isLoadingExercises } = useQuery({
-    queryKey: ['checkpoint-exercises', selectedCheckpoint?.id],
+    queryKey: ['exercises', selectedCheckpoint?.id],
     queryFn: () => exercisesApi.getCheckpointExercises(selectedCheckpoint!.id, token!),
     enabled: !!selectedCheckpoint && !!token,
   });
@@ -86,7 +109,7 @@ export const LearningGoalPage = () => {
     mutationFn: () =>
       exercisesApi.generateExercise(goalId!, goal!.preferredLanguage.id, selectedCheckpoint!.id, token!),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['checkpoint-exercises', selectedCheckpoint?.id] });
+      queryClient.invalidateQueries({ queryKey: ['exercises', selectedCheckpoint?.id] });
       setToast({
         open: true,
         message: 'New exercise has been created for this checkpoint',
@@ -115,7 +138,7 @@ export const LearningGoalPage = () => {
     },
   });
 
-  const handleCheckpointClick = (checkpoint: {
+  const handleCheckpointClick = async (checkpoint: {
     id: string;
     title: string;
     description: string;
@@ -123,14 +146,16 @@ export const LearningGoalPage = () => {
     order: number;
   }) => {
     console.log('Selected checkpoint:', checkpoint);
-    // Add missing properties to match Checkpoint type
     const fullCheckpoint: Checkpoint = {
       ...checkpoint,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
     setSelectedCheckpoint(fullCheckpoint);
-    if (!exercises?.length) {
+    
+    // Check if exercises exist before generating
+    const existingExercises = await exercisesApi.getCheckpointExercises(checkpoint.id, token!);
+    if (!existingExercises?.length) {
       generateExerciseMutation.mutate();
     }
   };
@@ -143,6 +168,13 @@ export const LearningGoalPage = () => {
     if (!goal?.roadmap?.checkpoints) return 0;
     const completed = goal.roadmap.checkpoints.filter(cp => cp.status === 'COMPLETED').length;
     return (completed / goal.roadmap.checkpoints.length) * 100;
+  };
+
+  const scroll = (direction: 'left' | 'right') => {
+    if (containerRef.current) {
+      const scrollAmount = direction === 'left' ? -300 : 300;
+      containerRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
   };
 
   if (isLoadingGoal) {
@@ -193,161 +225,158 @@ export const LearningGoalPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-          {/* Roadmap Sidebar */}
-          <div className="md:col-span-4">
-            <div className="bg-secondary-background rounded-lg shadow-md p-6">
-              <div className="space-y-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-text mb-4">Learning Progress</h3>
-                  <div className="relative h-2 bg-background rounded">
-                    <div
-                      className="absolute top-0 left-0 h-full bg-primary rounded"
-                      style={{ width: `${getProgressPercentage()}%` }}
-                    />
+    <>
+      <style>{scrollbarStyles}</style>
+      <div className="min-h-screen bg-background flex flex-col">
+        <Navbar />
+        <div className="flex flex-1 my-3 w-full px-3 overflow-hidden">
+          {/* Sidebar with checkpoints */}
+          <div 
+            className="w-64 bg-secondary-background rounded-lg p-4 mr-3 flex-shrink-0 overflow-y-auto"
+            style={{
+              scrollbarWidth: 'thin',
+              scrollbarColor: 'rgba(75, 85, 99, 0.5) rgba(17, 24, 39, 0.1)'
+            }}
+          >
+            <h2 className="text-lg font-semibold text-text mb-4">Learning Path</h2>
+            <div className="space-y-2">
+              {goal?.roadmap?.checkpoints.map((checkpoint) => (
+                <motion.div
+                  key={checkpoint.id}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => handleCheckpointClick(checkpoint)}
+                  className={`p-3 rounded-lg cursor-pointer transition-colors duration-200 ${
+                    selectedCheckpoint?.id === checkpoint.id
+                      ? 'bg-primary text-white'
+                      : 'hover:bg-background text-text-secondary hover:text-text'
+                  }`}
+                >
+                  <div className="font-medium">{checkpoint.title}</div>
+                  <div className="text-sm opacity-80 truncate">
+                    {checkpoint.description}
                   </div>
-                </div>
-
-                <div className="space-y-4">
-                  {goal.roadmap?.checkpoints.map((checkpoint) => (
-                    <div
-                      key={checkpoint.id}
-                      className={`p-4 rounded-lg cursor-pointer transition-colors ${
-                        selectedCheckpoint?.id === checkpoint.id
-                          ? 'bg-primary bg-opacity-10'
-                          : 'bg-secondary-background hover:bg-primary hover:bg-opacity-5'
-                      }`}
-                      onClick={() => handleCheckpointClick(checkpoint)}
-                    >
-                      <div className="space-y-2">
-                        <span
-                          className={`inline-flex px-2 py-1 text-sm rounded-full ${
-                            checkpoint.status === 'COMPLETED'
-                              ? 'bg-success text-success-contrast'
-                              : checkpoint.status === 'IN_PROGRESS'
-                              ? 'bg-primary text-primary-contrast'
-                              : 'bg-background text-text-secondary'
-                          }`}
-                        >
-                          {checkpoint.status}
-                        </span>
-                        <h4 className="text-text font-medium">{checkpoint.title}</h4>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+                  <div className="mt-2">
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      checkpoint.status === 'COMPLETED' 
+                        ? 'bg-green-100 text-green-800' 
+                        : checkpoint.status === 'IN_PROGRESS'
+                        ? 'bg-blue-100 text-blue-800'
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {checkpoint.status.replace('_', ' ')}
+                    </span>
+                  </div>
+                </motion.div>
+              ))}
             </div>
           </div>
 
-          {/* Main Content */}
-          <div className="md:col-span-8">
-            <div className="bg-secondary-background rounded-lg shadow-md p-6">
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-2xl font-bold text-text mb-2">{goal.title}</h2>
-                  <p className="text-text-secondary">{goal.description}</p>
+          {/* Main content area */}
+          <div className="flex-1 p-6 rounded-lg overflow-y-auto">
+            {selectedCheckpoint ? (
+              <>
+                <div className="mb-8">
+                  <h1 className="text-3xl font-bold text-text mb-4">{selectedCheckpoint.title}</h1>
+                  <p className="text-text-secondary">{selectedCheckpoint.description}</p>
                 </div>
 
-                {selectedCheckpoint ? (
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="text-xl font-semibold text-text mb-2">
-                        {selectedCheckpoint.title}
-                      </h3>
-                      <p className="text-text-secondary mb-6">
-                        {selectedCheckpoint.description}
-                      </p>
+                <div className="relative">
+                  <h2 className="text-xl font-semibold text-text mb-4">Exercises</h2>
+                  
+                  {/* Scroll buttons */}
+                  <button
+                    onClick={() => scroll('left')}
+                    className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-secondary-background rounded-full shadow-lg"
+                  >
+                    ←
+                  </button>
+                  <button
+                    onClick={() => scroll('right')}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-secondary-background rounded-full shadow-lg"
+                  >
+                    →
+                  </button>
 
-                      <div className="flex gap-4 mb-6">
-                        {selectedCheckpoint.status !== 'COMPLETED' && (
-                          <Button
-                            variant="contained"
-                            className="bg-success hover:bg-success-dark text-success-contrast"
-                            onClick={() => handleStatusUpdate(selectedCheckpoint, 'COMPLETED')}
-                          >
-                            Mark as Completed
-                          </Button>
-                        )}
-                        {selectedCheckpoint.status === 'NOT_STARTED' && (
-                          <Button
-                            variant="contained"
-                            className="bg-primary hover:bg-primary-dark text-primary-contrast"
-                            onClick={() => handleStatusUpdate(selectedCheckpoint, 'IN_PROGRESS')}
-                          >
-                            Start Checkpoint
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-
+                  {/* Updated Exercise carousel */}
+                  <div
+                    ref={containerRef}
+                    className="overflow-x-auto flex space-x-4 pb-4 px-8 scrollbar-hide"
+                  >
                     {isLoadingExercises ? (
-                      <CircularProgress className="text-primary" />
-                    ) : exercises?.length ? (
-                      <div className="space-y-4">
-                        {exercises.map((exercise) => (
-                          <div
-                            key={exercise.id}
-                            className="bg-secondary-background rounded-lg shadow-md p-6 hover:bg-primary hover:bg-opacity-5 transition-colors"
-                          >
-                            <div className="space-y-4">
-                              <h4 className="text-lg font-semibold text-text">
-                                {exercise.title}
-                              </h4>
-                              <p className="text-text-secondary">{exercise.description}</p>
-                              <div className="flex gap-2">
-                                <span className="inline-flex px-3 py-1 text-sm rounded-full bg-primary text-primary-contrast">
-                                  {exercise.language.name}
-                                </span>
-                                <span
-                                  className={`inline-flex px-3 py-1 text-sm rounded-full ${
-                                    exercise.difficulty === 'EASY'
-                                      ? 'bg-success text-success-contrast'
-                                      : exercise.difficulty === 'MEDIUM'
-                                      ? 'bg-warning text-warning-contrast'
-                                      : 'bg-error text-error-contrast'
-                                  }`}
-                                >
-                                  {exercise.difficulty}
-                                </span>
-                              </div>
-                              <Button
-                                variant="contained"
-                                className="bg-primary hover:bg-primary-dark text-primary-contrast"
-                                onClick={() => setModalOpen(true)}
-                              >
-                                Start Exercise
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                      // Loading skeletons
+                      [...Array(4)].map((_, i) => (
+                        <div
+                          key={i}
+                          className="flex-shrink-0 w-72 h-48 bg-secondary-background rounded-lg animate-pulse"
+                        />
+                      ))
+                    ) : exercises?.length === 0 ? (
+                      <div className="text-text-secondary">No exercises available</div>
                     ) : (
-                      <Button
-                        variant="contained"
-                        className="bg-primary hover:bg-primary-dark text-primary-contrast"
-                        onClick={() => generateExerciseMutation.mutate()}
-                        disabled={generateExerciseMutation.isPending}
-                      >
-                        {generateExerciseMutation.isPending ? (
-                          <CircularProgress size={24} className="text-primary-contrast" />
-                        ) : (
-                          'Generate Exercise'
-                        )}
-                      </Button>
+                      <>
+                        {exercises?.map((exercise: Exercise) => (
+                          <motion.div
+                            key={exercise.id}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="flex-shrink-0 w-72 bg-secondary-background rounded-lg p-4 cursor-pointer"
+                            onClick={() => navigate(`/exercise/${exercise.id}`)}
+                          >
+                            <h3 className="font-semibold text-text mb-2">{exercise.title}</h3>
+                            <p className="text-sm text-text-secondary mb-4 line-clamp-2">
+                              {exercise.description}
+                            </p>
+                            <div className="flex space-x-2">
+                              <span className="px-2 py-1 bg-background rounded text-xs text-text-secondary">
+                                {exercise.difficulty}
+                              </span>
+                              <span className="px-2 py-1 bg-background rounded text-xs text-text-secondary">
+                                {exercise.language.name}
+                              </span>
+                            </div>
+                          </motion.div>
+                        ))}
+
+                        {/* Generate More Card */}
+                        <motion.div
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                          className="flex-shrink-0 w-72 bg-secondary-background rounded-lg p-4 cursor-pointer border-2 border-dashed border-primary hover:border-primary-hover"
+                          onClick={() => generateExerciseMutation.mutate()}
+                        >
+                          <div className="h-full flex flex-col items-center justify-center text-center p-4">
+                            <div className="w-12 h-12 rounded-full bg-primary bg-opacity-10 flex items-center justify-center mb-4">
+                              <svg
+                                className="w-6 h-6 text-primary"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                                />
+                              </svg>
+                            </div>
+                            <h3 className="font-semibold text-text mb-2">Generate More</h3>
+                            <p className="text-sm text-text-secondary">
+                              Create a new exercise for this checkpoint
+                            </p>
+                          </div>
+                        </motion.div>
+                      </>
                     )}
                   </div>
-                ) : (
-                  <div className="text-center py-10">
-                    <Typography className="text-text-secondary">
-                      Select a checkpoint to view details and exercises
-                    </Typography>
-                  </div>
-                )}
+                </div>
+              </>
+            ) : (
+              <div className="h-full flex items-center justify-center text-text-secondary">
+                Select a checkpoint from the sidebar to view its exercises
               </div>
-            </div>
+            )}
           </div>
         </div>
 
@@ -396,6 +425,6 @@ export const LearningGoalPage = () => {
           </Alert>
         </Snackbar>
       </div>
-    </div>
+    </>
   );
 }; 
