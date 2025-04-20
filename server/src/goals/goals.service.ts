@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateGoalDto, UpdateGoalStatusDto } from './dto/goals.dto';
 import { RoadmapDto } from './dto/roadmap.dto';
@@ -6,10 +10,7 @@ import { LLMService } from '../llm/llm.service';
 
 @Injectable()
 export class GoalsService {
-  constructor(
-    private prisma: PrismaService,
-    private llmService: LLMService,
-  ) {}
+  constructor(private prisma: PrismaService, private llmService: LLMService) {}
 
   async create(userId: string, createGoalDto: CreateGoalDto) {
     // Get the default language (JavaScript)
@@ -51,7 +52,11 @@ export class GoalsService {
     });
   }
 
-  private async generateRoadmap(goalId: string, title: string, description?: string) {
+  private async generateRoadmap(
+    goalId: string,
+    title: string,
+    description?: string
+  ) {
     const prompt = `Create a detailed learning roadmap for the following goal:
     Title: "${title}"
     ${description ? `Description: "${description}"` : ''}
@@ -73,14 +78,17 @@ export class GoalsService {
     }`;
 
     try {
-      const roadmapData = await this.llmService.generateJson<RoadmapDto>(prompt, schema);
+      const roadmapData = await this.llmService.generateJson<RoadmapDto>(
+        prompt,
+        schema
+      );
 
       // Create the roadmap with checkpoints
       await this.prisma.roadmap.create({
         data: {
           goalId,
           checkpoints: {
-            create: roadmapData.checkpoints.map(checkpoint => ({
+            create: roadmapData.checkpoints.map((checkpoint) => ({
               ...checkpoint,
               status: 'NOT_STARTED',
             })),
@@ -142,7 +150,11 @@ export class GoalsService {
     return goal;
   }
 
-  async updateStatus(userId: string, goalId: string, updateGoalStatusDto: UpdateGoalStatusDto) {
+  async updateStatus(
+    userId: string,
+    goalId: string,
+    updateGoalStatusDto: UpdateGoalStatusDto
+  ) {
     const goal = await this.prisma.learningGoal.findFirst({
       where: {
         id: goalId,
@@ -176,7 +188,7 @@ export class GoalsService {
   async updateCheckpointStatus(
     userId: string,
     checkpointId: string,
-    status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED',
+    status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED'
   ) {
     const checkpoint = await this.prisma.checkpoint.findFirst({
       where: {
@@ -198,4 +210,39 @@ export class GoalsService {
       data: { status },
     });
   }
-} 
+
+  async enhanceDescription(
+    title: string,
+    description?: string
+  ): Promise<{ description: string }> {
+    const prompt = `Create a proffesional description for a learning goal with the following information:
+    
+    Title: "${title}"
+    ${description ? `Current Description: "${description}"` : ''}
+    
+    The description should:
+    - Outline what the learner will gain from completing it
+    - Be concise but professional
+    ${
+      description
+        ? 'Use the current description as a foundation and enhance it.'
+        : 'Create a complete description from scratch.'
+    }
+    
+    Return your response as a JSON object with a single field called "description" containing the enhanced description text.`;
+
+    const schema = `{
+      "description": "string"
+    }`;
+
+    try {
+      const result = await this.llmService.generateJson<{
+        description: string;
+      }>(prompt, schema);
+      return { description: result.description.trim() };
+    } catch (error) {
+      console.error('Error enhancing goal description:', error);
+      throw new Error('Failed to enhance goal description');
+    }
+  }
+}

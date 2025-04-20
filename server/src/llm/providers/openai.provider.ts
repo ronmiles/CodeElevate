@@ -1,5 +1,11 @@
 import OpenAI from 'openai';
-import { LLMConfig, LLMProvider, LLMResponse, ensureInteger } from '../interfaces/llm.interface';
+import {
+  LLMConfig,
+  LLMProvider,
+  LLMResponse,
+  ensureInteger,
+  ensureTemperature,
+} from '../interfaces/llm.interface';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -25,7 +31,7 @@ export class OpenAIProvider implements LLMProvider {
       const completion = await this.openai.chat.completions.create({
         model: this.config.model!,
         messages: [{ role: 'user', content: prompt }],
-        temperature: this.config.temperature,
+        temperature: ensureTemperature(this.config.temperature),
         max_tokens: ensureInteger(this.config.maxTokens, 2000),
       });
 
@@ -44,7 +50,7 @@ export class OpenAIProvider implements LLMProvider {
 
   async generateJson<T>(prompt: string, schema: string): Promise<T> {
     const systemPrompt = `You are a JSON generator. You must respond with valid JSON that matches this schema: ${schema}`;
-    
+
     try {
       const completion = await this.openai.chat.completions.create({
         model: this.config.model!,
@@ -52,7 +58,7 @@ export class OpenAIProvider implements LLMProvider {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: prompt },
         ],
-        temperature: this.config.temperature,
+        temperature: ensureTemperature(this.config.temperature),
         max_tokens: ensureInteger(this.config.maxTokens, 2000),
         response_format: { type: 'json_object' },
       });
@@ -63,4 +69,4 @@ export class OpenAIProvider implements LLMProvider {
       throw new Error(`OpenAI JSON Generation Error: ${error.message}`);
     }
   }
-} 
+}

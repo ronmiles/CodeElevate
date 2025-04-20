@@ -75,7 +75,11 @@ export const goalsApi = {
     }
   },
 
-  async updateGoalStatus(goalId: string, status: LearningGoal['status'], token: string): Promise<LearningGoal> {
+  async updateGoalStatus(
+    goalId: string,
+    status: LearningGoal['status'],
+    token: string
+  ): Promise<LearningGoal> {
     try {
       const response = await api.patch(
         `/goals/${goalId}/status`,
@@ -93,7 +97,11 @@ export const goalsApi = {
     }
   },
 
-  async updateCheckpointStatus(checkpointId: string, status: string, token: string): Promise<void> {
+  async updateCheckpointStatus(
+    checkpointId: string,
+    status: string,
+    token: string
+  ): Promise<void> {
     try {
       await api.patch(
         `/goals/checkpoints/${checkpointId}/status`,
@@ -109,4 +117,26 @@ export const goalsApi = {
       throw error;
     }
   },
-}; 
+
+  async enhanceDescription(
+    title: string,
+    description: string | undefined,
+    token: string
+  ): Promise<string> {
+    try {
+      const response = await api.post(
+        '/goals/enhance-description',
+        { title, description },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      return response.data.description;
+    } catch (error) {
+      console.error('Error enhancing goal description:', error);
+      throw error;
+    }
+  },
+};
