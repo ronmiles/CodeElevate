@@ -1,15 +1,14 @@
-import React from 'react';
+import CloseIcon from '@mui/icons-material/Close';
 import {
-  Typography,
-  Chip,
   Button,
   CircularProgress,
   Dialog,
   DialogContent,
   DialogTitle,
   IconButton,
+  Typography
 } from '@mui/material';
-import CloseIcon from '@mui/icons-material/Close';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Exercise } from '../api/exercises.api';
 
@@ -64,14 +63,12 @@ export const ExerciseDetailsOverlay: React.FC<ExerciseDetailsOverlayProps> = ({
                 Details
               </Typography>
               <div className="flex flex-wrap gap-3">
-                <Chip
-                  label={`Difficulty: ${exercise.difficulty}`}
-                  className="bg-primary bg-opacity-10 text-primary border border-primary"
-                />
-                <Chip
-                  label={`Language: ${exercise.language.name}`}
-                  className="bg-info bg-opacity-10 text-info border border-info"
-                />
+                <span className="px-2 py-1 bg-background rounded text-xs text-text-secondary">
+                  {exercise.difficulty}
+                </span>
+                <span className="px-2 py-1 bg-background rounded text-xs text-text-secondary">
+                  {exercise.language.name}
+                </span>
               </div>
             </div>
 
@@ -90,10 +87,10 @@ export const ExerciseDetailsOverlay: React.FC<ExerciseDetailsOverlayProps> = ({
               </div>
             )}
 
-            <div className="mt-8 flex justify-end">
+            <div className="mt-8 flex justify-center">
               <Button
                 variant="contained"
-                className="bg-primary hover:bg-primary-dark"
+                className="bg-primary hover:bg-primary-dark rounded-xl"
                 onClick={() => {
                   onClose();
                   navigate(`/exercise/${exercise.id}`);
