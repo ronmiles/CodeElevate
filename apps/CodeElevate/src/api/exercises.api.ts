@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { api } from './api';
 
 const api = axios.create({
   baseURL: 'http://localhost:3333/api',
@@ -58,14 +57,19 @@ const handleApiError = (error: any) => {
   if (error.response) {
     throw new Error(error.response.data.message || 'An error occurred');
   } else if (error.request) {
-    throw new Error('No response from server. Please check if the server is running.');
+    throw new Error(
+      'No response from server. Please check if the server is running.'
+    );
   } else {
     throw new Error('Failed to make request. Please try again.');
   }
 };
 
 export const exercisesApi = {
-  async getCheckpointExercises(checkpointId: string, token: string): Promise<Exercise[]> {
+  async getCheckpointExercises(
+    checkpointId: string,
+    token: string
+  ): Promise<Exercise[]> {
     const response = await api.get(`/exercises/checkpoint/${checkpointId}`, {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -74,7 +78,12 @@ export const exercisesApi = {
     return response.data;
   },
 
-  async generateExercise(goalId: string, languageId: string, checkpointId: string, token: string): Promise<Exercise> {
+  async generateExercise(
+    goalId: string,
+    languageId: string,
+    checkpointId: string,
+    token: string
+  ): Promise<Exercise> {
     const response = await api.post(
       '/exercises/generate',
       {
@@ -117,13 +126,21 @@ export const exercisesApi = {
     }
   },
 
-  updateProgress: async (exerciseId: string, data: { status: Progress['status']; code?: string }, token: string) => {
+  updateProgress: async (
+    exerciseId: string,
+    data: { status: Progress['status']; code?: string },
+    token: string
+  ) => {
     try {
-      const response = await api.post(`/exercises/${exerciseId}/progress`, data, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await api.post(
+        `/exercises/${exerciseId}/progress`,
+        data,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       return response.data;
     } catch (error) {
       handleApiError(error);
@@ -142,4 +159,4 @@ export const exercisesApi = {
       handleApiError(error);
     }
   },
-}; 
+};
