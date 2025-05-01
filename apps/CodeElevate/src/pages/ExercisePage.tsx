@@ -10,6 +10,11 @@ export const ExercisePage: React.FC = () => {
   const [exercise, setExercise] = useState<Exercise | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [solution, setSolution] = useState<string>('');
+  const [submitStatus, setSubmitStatus] = useState<
+    'idle' | 'loading' | 'success' | 'error'
+  >('idle');
+  const [statusMessage, setStatusMessage] = useState<string>('');
 
   useEffect(() => {
     const fetchExercise = async () => {
@@ -19,6 +24,10 @@ export const ExercisePage: React.FC = () => {
         setLoading(true);
         const data = await exercisesApi.getExercise(exerciseId, token);
         setExercise(data);
+        // Initialize with initial code if available
+        if (data.initialCode) {
+          setSolution(data.initialCode);
+        }
       } catch (err) {
         setError(
           err instanceof Error ? err.message : 'Failed to load exercise'
@@ -31,6 +40,49 @@ export const ExercisePage: React.FC = () => {
 
     fetchExercise();
   }, [exerciseId, token]);
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const content = e.target?.result as string;
+      setSolution(content);
+    };
+    reader.onerror = () => {
+      setStatusMessage('Failed to read file');
+    };
+    reader.readAsText(file);
+  };
+
+  const handleSubmit = async () => {
+    if (!exerciseId || !token || !solution.trim()) return;
+
+    try {
+      setSubmitStatus('loading');
+      setStatusMessage('Submitting your solution...');
+
+      // Update the progress with the code solution
+      await exercisesApi.updateProgress(
+        exerciseId,
+        {
+          status: 'IN_PROGRESS',
+          code: solution,
+        },
+        token
+      );
+
+      setSubmitStatus('success');
+      setStatusMessage('Solution submitted successfully');
+    } catch (err) {
+      setSubmitStatus('error');
+      setStatusMessage(
+        err instanceof Error ? err.message : 'Failed to submit solution'
+      );
+      console.error('Error submitting solution:', err);
+    }
+  };
 
   if (loading) {
     return (
@@ -126,12 +178,62 @@ export const ExercisePage: React.FC = () => {
           </div>
         )}
 
-        {/* Add code editor, submissions, and other exercise-specific UI here */}
-        <div className="bg-secondary-background p-6 rounded-lg min-h-[400px]">
-          <h2 className="text-xl font-semibold text-text mb-4">Code Editor</h2>
-          <p className="text-text-secondary">
-            Code editor and submission UI will be implemented here.
-          </p>
+        <div className="bg-secondary-background p-6 rounded-lg">
+          <h2 className="text-xl font-semibold text-text mb-4">
+            Code Solution
+          </h2>
+
+          <div className="mb-4">
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-text-secondary">
+                Upload Solution File:
+              </label>
+              <div className="relative">
+                <input
+                  type="file"
+                  onChange={handleFileUpload}
+                  className="opacity-0 absolute inset-0 w-full h-full cursor-pointer"
+                  accept=".js,.jsx,.ts,.tsx,.py,.java,.c,.cpp,.cs,.go,.rb"
+                />
+                <button className="px-3 py-1.5 bg-primary text-white rounded hover:bg-primary-dark text-sm">
+                  Choose File
+                </button>
+              </div>
+            </div>
+
+            <textarea
+              value={solution}
+              onChange={(e) => setSolution(e.target.value)}
+              className="w-full h-80 p-3 bg-background text-text font-mono text-sm rounded border border-border focus:outline-none focus:ring-1 focus:ring-primary"
+              placeholder={`Enter your solution code here (${exercise.language.name})...`}
+            />
+          </div>
+
+          <div className="flex items-center justify-between">
+            <span
+              className={`text-sm ${
+                submitStatus === 'error'
+                  ? 'text-error'
+                  : submitStatus === 'success'
+                  ? 'text-green-600'
+                  : 'text-text-secondary'
+              }`}
+            >
+              {statusMessage}
+            </span>
+
+            <button
+              onClick={handleSubmit}
+              disabled={submitStatus === 'loading' || !solution.trim()}
+              className={`px-4 py-2 bg-primary text-white rounded-lg ${
+                submitStatus === 'loading' || !solution.trim()
+                  ? 'opacity-60 cursor-not-allowed'
+                  : 'hover:bg-primary-dark'
+              }`}
+            >
+              {submitStatus === 'loading' ? 'Submitting...' : 'Submit Solution'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
