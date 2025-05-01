@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { exercisesApi, Exercise } from '../api/exercises.api';
 import { useAuth } from '../contexts/AuthContext';
+import Editor from '@monaco-editor/react';
 
 export const ExercisePage: React.FC = () => {
   const { exerciseId } = useParams<{ exerciseId: string }>();
@@ -26,6 +27,13 @@ export const ExercisePage: React.FC = () => {
         setLoading(true);
         const data = await exercisesApi.getExercise(exerciseId, token);
         setExercise(data);
+
+        // Log language information for debugging
+        console.log('Exercise language from API:', {
+          name: data.language?.name,
+          languageId: data.language?.id,
+        });
+
         // Initialize with initial code if available
         if (data.initialCode) {
           setSolution(data.initialCode);
@@ -101,6 +109,53 @@ export const ExercisePage: React.FC = () => {
 
   const hideSolution = () => {
     setShowSolution(false);
+  };
+
+  // Maps programming language names to Monaco Editor language IDs
+  const getMonacoLanguage = (languageName: string): string => {
+    if (!languageName) return 'plaintext';
+
+    // Convert to lowercase for case-insensitive matching
+    const normalizedName = languageName.toLowerCase();
+
+    // Log the language we're trying to map
+    console.log(`Mapping language: "${languageName}"`);
+
+    // Map language names to Monaco editor language IDs
+    if (normalizedName.includes('javascript')) return 'javascript';
+    if (normalizedName.includes('typescript')) return 'typescript';
+    if (normalizedName.includes('python')) return 'python';
+    if (
+      normalizedName.includes('java') &&
+      !normalizedName.includes('javascript')
+    )
+      return 'java';
+    if (normalizedName === 'c') return 'c';
+    if (normalizedName.includes('c++') || normalizedName.includes('cpp'))
+      return 'cpp';
+    if (normalizedName.includes('c#') || normalizedName.includes('csharp'))
+      return 'csharp';
+    if (normalizedName.includes('go')) return 'go';
+    if (normalizedName.includes('ruby')) return 'ruby';
+    if (normalizedName.includes('php')) return 'php';
+    if (normalizedName.includes('swift')) return 'swift';
+    if (normalizedName.includes('kotlin')) return 'kotlin';
+    if (normalizedName.includes('rust')) return 'rust';
+    if (normalizedName.includes('html')) return 'html';
+    if (normalizedName.includes('css')) return 'css';
+    if (normalizedName.includes('sql')) return 'sql';
+
+    // Default to plaintext if no match is found
+    console.log(
+      `No language mapping found for "${languageName}", using plaintext`
+    );
+    return 'plaintext';
+  };
+
+  const handleEditorChange = (value: string | undefined) => {
+    if (value !== undefined) {
+      setSolution(value);
+    }
   };
 
   if (loading) {
@@ -338,13 +393,45 @@ export const ExercisePage: React.FC = () => {
                 </div>
               </div>
 
-              <textarea
-                value={solution}
-                onChange={(e) => setSolution(e.target.value)}
-                className="w-full h-96 p-4 bg-gray-900 text-gray-100 font-mono text-sm rounded-lg border border-gray-700 focus:outline-none focus:ring-1 focus:ring-primary shadow-inner"
-                placeholder={`Enter your solution code here (${exercise.language.name})...`}
-                spellCheck="false"
-              />
+              <div className="h-96 border border-gray-700 rounded-lg overflow-hidden">
+                <Editor
+                  height="100%"
+                  language={getMonacoLanguage(exercise.language.name)}
+                  value={solution}
+                  onChange={handleEditorChange}
+                  theme="vs-dark"
+                  options={{
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    fontSize: 14,
+                    fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+                    automaticLayout: true,
+                    renderLineHighlight: 'all',
+                    scrollbar: {
+                      verticalScrollbarSize: 8,
+                      horizontalScrollbarSize: 8,
+                    },
+                    lineNumbers: 'on',
+                    glyphMargin: false,
+                    folding: true,
+                    lineDecorationsWidth: 10,
+                    lineNumbersMinChars: 3,
+                  }}
+                  beforeMount={(monaco) => {
+                    console.log(
+                      'Monaco editor languages:',
+                      monaco.languages.getLanguages().map((l) => l.id)
+                    );
+                  }}
+                  onMount={(editor, monaco) => {
+                    console.log(
+                      `Mounted editor with language: ${getMonacoLanguage(
+                        exercise.language.name
+                      )}`
+                    );
+                  }}
+                />
+              </div>
             </div>
           ) : (
             <div className="mb-4">
@@ -370,14 +457,47 @@ export const ExercisePage: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <div className="w-full h-96 p-4 bg-gray-900 text-gray-100 font-mono text-sm rounded-lg overflow-auto shadow-inner border border-gray-700">
-                {exercise.solution ? (
-                  <pre className="whitespace-pre-wrap">{exercise.solution}</pre>
-                ) : (
-                  <p className="text-gray-400 italic">
-                    No example solution available for this exercise.
-                  </p>
-                )}
+              <div className="h-96 border border-gray-700 rounded-lg overflow-hidden">
+                <Editor
+                  height="100%"
+                  language={getMonacoLanguage(exercise.language.name)}
+                  value={
+                    exercise.solution ||
+                    '// No example solution available for this exercise.'
+                  }
+                  theme="vs-dark"
+                  options={{
+                    readOnly: true,
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    fontSize: 14,
+                    fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+                    automaticLayout: true,
+                    renderLineHighlight: 'all',
+                    scrollbar: {
+                      verticalScrollbarSize: 8,
+                      horizontalScrollbarSize: 8,
+                    },
+                    lineNumbers: 'on',
+                    glyphMargin: false,
+                    folding: true,
+                    lineDecorationsWidth: 10,
+                    lineNumbersMinChars: 3,
+                  }}
+                  beforeMount={(monaco) => {
+                    console.log(
+                      'Solution editor languages:',
+                      monaco.languages.getLanguages().map((l) => l.id)
+                    );
+                  }}
+                  onMount={(editor, monaco) => {
+                    console.log(
+                      `Mounted solution editor with language: ${getMonacoLanguage(
+                        exercise.language.name
+                      )}`
+                    );
+                  }}
+                />
               </div>
             </div>
           )}
