@@ -1,6 +1,14 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateExerciseDto, UpdateProgressDto, DifficultyLevel } from './dto/exercises.dto';
+import {
+  CreateExerciseDto,
+  UpdateProgressDto,
+  DifficultyLevel,
+} from './dto/exercises.dto';
 import { LLMService } from '../llm/llm.service';
 import { Prisma } from '@prisma/client';
 
@@ -18,10 +26,7 @@ interface GeneratedExercise {
 
 @Injectable()
 export class ExercisesService {
-  constructor(
-    private prisma: PrismaService,
-    private llmService: LLMService,
-  ) {}
+  constructor(private prisma: PrismaService, private llmService: LLMService) {}
 
   async createExercise(userId: string, createExerciseDto: CreateExerciseDto) {
     if (!createExerciseDto.goalId) {
@@ -40,7 +45,7 @@ export class ExercisesService {
       throw new ForbiddenException('Goal not found or does not belong to user');
     }
 
-    const exerciseData: Prisma.ExerciseCreateInput = {
+    const exerciseData = {
       title: createExerciseDto.title,
       description: createExerciseDto.description,
       difficulty: createExerciseDto.difficulty,
@@ -49,17 +54,19 @@ export class ExercisesService {
       hints: createExerciseDto.hints || [],
       testCases: createExerciseDto.testCases || {},
       user: {
-        connect: { id: userId }
+        connect: { id: userId },
       },
       goal: {
-        connect: { id: goal.id }
+        connect: { id: goal.id },
       },
-      checkpoint: createExerciseDto.checkpointId ? {
-        connect: { id: createExerciseDto.checkpointId }
-      } : undefined,
+      checkpoint: createExerciseDto.checkpointId
+        ? {
+            connect: { id: createExerciseDto.checkpointId },
+          }
+        : undefined,
       language: {
-        connect: { id: createExerciseDto.languageId }
-      }
+        connect: { id: createExerciseDto.languageId },
+      },
     };
 
     return this.prisma.exercise.create({
@@ -173,8 +180,9 @@ export class ExercisesService {
       9. DO NOT include any explanatory text outside the JSON structure
       10. The response must be valid JSON that can be parsed`;
 
-      const exerciseData = await this.llmService.generateJson<GeneratedExercise>(
-        `${systemPrompt}
+      const exerciseData =
+        await this.llmService.generateJson<GeneratedExercise>(
+          `${systemPrompt}
 
         Create a coding exercise for:
         Goal: "${goal.title}"
@@ -184,8 +192,8 @@ export class ExercisesService {
 
         The exercise should help the user master this specific checkpoint.
         Make it challenging but achievable for someone at this stage in their learning journey.`,
-        schema
-      );
+          schema
+        );
 
       // Create the exercise in the database
       return this.createExercise(userId, {
@@ -246,7 +254,11 @@ export class ExercisesService {
     return exercise;
   }
 
-  async updateProgress(userId: string, exerciseId: string, updateProgressDto: UpdateProgressDto) {
+  async updateProgress(
+    userId: string,
+    exerciseId: string,
+    updateProgressDto: UpdateProgressDto
+  ) {
     // Verify exercise exists and belongs to user
     const exercise = await this.prisma.exercise.findFirst({
       where: {
@@ -270,14 +282,16 @@ export class ExercisesService {
       update: {
         ...updateProgressDto,
         attempts: { increment: 1 },
-        completedAt: updateProgressDto.status === 'COMPLETED' ? new Date() : null,
+        completedAt:
+          updateProgressDto.status === 'COMPLETED' ? new Date() : null,
       },
       create: {
         userId,
         exerciseId,
         ...updateProgressDto,
         attempts: 1,
-        completedAt: updateProgressDto.status === 'COMPLETED' ? new Date() : null,
+        completedAt:
+          updateProgressDto.status === 'COMPLETED' ? new Date() : null,
       },
     });
   }
@@ -299,13 +313,13 @@ export class ExercisesService {
     // Calculate statistics
     const stats = {
       totalExercises: progress.length,
-      completed: progress.filter(p => p.status === 'COMPLETED').length,
-      inProgress: progress.filter(p => p.status === 'IN_PROGRESS').length,
+      completed: progress.filter((p) => p.status === 'COMPLETED').length,
+      inProgress: progress.filter((p) => p.status === 'IN_PROGRESS').length,
       byLanguage: {},
       byDifficulty: {},
     };
 
-    progress.forEach(p => {
+    progress.forEach((p) => {
       // Count by language
       const lang = p.exercise.language.name;
       if (!stats.byLanguage[lang]) {
@@ -369,4 +383,4 @@ export class ExercisesService {
       },
     });
   }
-} 
+}

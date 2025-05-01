@@ -1,4 +1,10 @@
-import React, { createContext, useState, useEffect, useCallback, useContext } from 'react';
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useCallback,
+  useContext,
+} from 'react';
 import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import { exercisesApi, Exercise } from '../api/exercises.api';
 import { useAuth } from './AuthContext';
@@ -12,10 +18,16 @@ interface ExerciseContextType {
   closeExercise: () => void;
 }
 
-const ExerciseContext = createContext<ExerciseContextType | undefined>(undefined);
+const ExerciseContext = createContext<ExerciseContextType | undefined>(
+  undefined
+);
 
-export const ExerciseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(null);
+export const ExerciseProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
+  const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
+    null
+  );
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,11 +40,11 @@ export const ExerciseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // Only load into modal if not on the ExercisePage
   useEffect(() => {
     // Skip this effect if we're on the dedicated ExercisePage (let the page component handle it)
-    if (location.pathname.startsWith('/exercise/') && !location.pathname.includes('/modal')) {
+    if (location.pathname.startsWith('/exercise/')) {
       console.log('Skipping modal load on ExercisePage');
       return;
     }
-    
+
     if (params.exerciseId && token) {
       fetchExercise(params.exerciseId);
     }
@@ -46,26 +58,30 @@ export const ExerciseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setSelectedExercise(exercise);
       setIsModalOpen(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load exercise details');
+      setError(
+        err instanceof Error ? err.message : 'Failed to load exercise details'
+      );
       console.error('Error loading exercise:', err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const openExercise = useCallback((exerciseId: string) => {
-    // Navigate to the dedicated exercise page instead of a modal
-    navigate(`/exercise/${exerciseId}`);
-  }, [navigate]);
+  const openExercise = useCallback(
+    (exerciseId: string) => {
+      // Navigate to the dedicated exercise page
+      navigate(`/exercise/${exerciseId}`, { replace: true });
+    },
+    [navigate]
+  );
 
   const closeExercise = useCallback(() => {
     setIsModalOpen(false);
     setSelectedExercise(null);
-    
+
     // Only navigate back if we're NOT on the dedicated ExercisePage
-    if (location.pathname.includes('/exercise/') && location.pathname.includes('/modal')) {
-      const previousPath = location.pathname.split('/exercise/')[0];
-      navigate(previousPath || '/dashboard', { replace: true });
+    if (!location.pathname.startsWith('/exercise/')) {
+      navigate(-1);
     }
   }, [navigate, location]);
 
@@ -78,7 +94,11 @@ export const ExerciseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     closeExercise,
   };
 
-  return <ExerciseContext.Provider value={value}>{children}</ExerciseContext.Provider>;
+  return (
+    <ExerciseContext.Provider value={value}>
+      {children}
+    </ExerciseContext.Provider>
+  );
 };
 
 export const useExercise = () => {

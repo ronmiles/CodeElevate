@@ -1,17 +1,25 @@
 // Uncomment this line to use CSS modules
 // import styles from './app.module.css';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Navigate, Route, BrowserRouter as Router, Routes } from 'react-router-dom';
+import {
+  Navigate,
+  Route,
+  BrowserRouter as Router,
+  Routes,
+} from 'react-router-dom';
 import { SignIn } from '../components/auth/SignIn';
 import { SignUp } from '../components/auth/SignUp';
 import { Dashboard } from '../components/dashboard/Dashboard';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import { LearningGoalPage } from '../pages/LearningGoalPage';
+import ExercisePage from '../pages/ExercisePage';
 
 const queryClient = new QueryClient();
 
-const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const { isAuthenticated } = useAuth();
   return isAuthenticated ? <>{children}</> : <Navigate to="/signin" />;
 };
@@ -43,6 +51,14 @@ export function App() {
                 element={
                   <PrivateRoute>
                     <LearningGoalPage />
+                  </PrivateRoute>
+                }
+              />
+              <Route
+                path="/exercise/:exerciseId"
+                element={
+                  <PrivateRoute>
+                    <ExercisePage />
                   </PrivateRoute>
                 }
               />

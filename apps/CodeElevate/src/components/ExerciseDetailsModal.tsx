@@ -6,7 +6,7 @@ import {
   DialogContent,
   DialogTitle,
   IconButton,
-  Typography
+  Typography,
 } from '@mui/material';
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -24,6 +24,15 @@ export const ExerciseDetailsOverlay: React.FC<ExerciseDetailsOverlayProps> = ({
   exercise,
 }) => {
   const navigate = useNavigate();
+
+  const handleStartExercise = () => {
+    if (exercise) {
+      // First close the modal
+      onClose();
+      // Then navigate directly to the exercise page
+      navigate(`/exercise/${exercise.id}`, { replace: true });
+    }
+  };
 
   return (
     <Dialog
@@ -91,10 +100,7 @@ export const ExerciseDetailsOverlay: React.FC<ExerciseDetailsOverlayProps> = ({
               <Button
                 variant="contained"
                 className="bg-primary hover:bg-primary-dark rounded-xl"
-                onClick={() => {
-                  onClose();
-                  navigate(`/exercise/${exercise.id}`);
-                }}
+                onClick={handleStartExercise}
               >
                 Start Exercise
               </Button>
