@@ -3,7 +3,7 @@ import {
   Button,
   CircularProgress,
   Snackbar,
-  Typography
+  Typography,
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
@@ -16,6 +16,7 @@ import { Checkpoint } from '../api/roadmap.api';
 import { ExerciseDetailsOverlay } from '../components/ExerciseDetailsModal';
 import { Navbar } from '../components/layout/Navbar';
 import { useAuth } from '../hooks/useAuth';
+import { ExerciseProvider } from '../contexts/ExerciseContext';
 
 // Add scrollbar styling at the top of the file
 const scrollbarStyles = `
@@ -528,11 +529,13 @@ export const LearningGoalPage: React.FC = () => {
         </div>
 
         {/* Exercise Modal */}
-        <ExerciseDetailsOverlay
-          open={modalOpen}
-          onClose={() => setModalOpen(false)}
-          exercise={selectedExercise}
-        />
+        <ExerciseProvider>
+          <ExerciseDetailsOverlay
+            open={modalOpen}
+            onClose={() => setModalOpen(false)}
+            exercise={selectedExercise}
+          />
+        </ExerciseProvider>
 
         {/* Toast */}
         <Snackbar
