@@ -1,5 +1,11 @@
 import { Groq } from 'groq-sdk';
-import { LLMConfig, LLMProvider, LLMResponse, ensureInteger } from '../interfaces/llm.interface';
+import {
+  LLMConfig,
+  LLMProvider,
+  LLMResponse,
+  ensureInteger,
+  ensureTemperature,
+} from '../interfaces/llm.interface';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -25,7 +31,7 @@ export class GroqProvider implements LLMProvider {
       const completion = await this.groq.chat.completions.create({
         model: this.config.model!,
         messages: [{ role: 'user', content: prompt }],
-        temperature: this.config.temperature,
+        temperature: ensureTemperature(this.config.temperature),
         max_tokens: ensureInteger(this.config.maxTokens, 2000),
       });
 
@@ -58,7 +64,7 @@ Example of correct response format:
 {
   "field": "value"
 }`;
-    
+
     try {
       const completion = await this.groq.chat.completions.create({
         model: this.config.model!,
@@ -66,12 +72,12 @@ Example of correct response format:
           { role: 'system', content: systemPrompt },
           { role: 'user', content: prompt },
         ],
-        temperature: Math.min(this.config.temperature || 0.7, 0.5), // Lower temperature for more consistent JSON
+        temperature: ensureTemperature(this.config.temperature, 0.5), // Lower temperature for more consistent JSON
         max_tokens: ensureInteger(this.config.maxTokens, 2000),
       });
 
       const content = completion.choices[0].message.content || '{}';
-      
+
       // Clean the response to ensure it only contains JSON
       const jsonStr = content
         .replace(/^```json\n?|\n?```$/g, '') // Remove code blocks
@@ -93,4 +99,4 @@ Example of correct response format:
       throw new Error(`Groq JSON Generation Error: ${error.message}`);
     }
   }
-} 
+}

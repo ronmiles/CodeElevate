@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { goalsApi, LearningGoal, CreateGoalData } from '../../api/goals.api';
 import { Navbar } from '../layout/Navbar';
+import { SparkleIcon } from '../common/SparkleIcon';
 
 export const Dashboard: React.FC = () => {
   const { signOut, token } = useAuth();
@@ -16,6 +17,7 @@ export const Dashboard: React.FC = () => {
     description: '',
     deadline: '',
   });
+  const [isEnhancingDescription, setIsEnhancingDescription] = useState(false);
 
   const { data: goals, isLoading: isLoadingGoals } = useQuery({
     queryKey: ['goals'],
@@ -91,6 +93,39 @@ export const Dashboard: React.FC = () => {
     navigate(`/goal/${goalId}`);
   };
 
+  const handleEnhanceDescription = async () => {
+    if (!token) {
+      setError('You must be logged in to use this feature');
+      return;
+    }
+
+    if (!newGoal.title.trim()) {
+      setError('Goal title is required for AI description generation');
+      return;
+    }
+
+    setIsEnhancingDescription(true);
+    setError(null);
+
+    try {
+      const enhancedDescription = await goalsApi.enhanceDescription(
+        newGoal.title.trim(),
+        newGoal.description?.trim() || undefined,
+        token
+      );
+      
+      setNewGoal({
+        ...newGoal,
+        description: enhancedDescription
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to enhance description');
+      console.error('Error enhancing description:', err);
+    } finally {
+      setIsEnhancingDescription(false);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -136,13 +171,27 @@ export const Dashboard: React.FC = () => {
                   <label htmlFor="description" className="block text-sm font-medium text-text mb-1">
                     Description
                   </label>
-                  <textarea
-                    id="description"
-                    value={newGoal.description}
-                    onChange={(e) => setNewGoal({ ...newGoal, description: e.target.value })}
-                    className="auth-input min-h-[100px]"
-                    placeholder="Describe your goal in detail"
-                  />
+                  <div className="space-y-2">
+                    <textarea
+                      id="description"
+                      value={newGoal.description}
+                      onChange={(e) => setNewGoal({ ...newGoal, description: e.target.value })}
+                      className="auth-input min-h-[100px] w-full"
+                      placeholder="Describe your goal in detail"
+                    />
+                    <div className="flex justify-end">
+                      <button
+                        type="button"
+                        onClick={handleEnhanceDescription}
+                        disabled={isEnhancingDescription}
+                        className="h-9 px-3 rounded-md flex items-center gap-1.5 text-xs font-medium text-white hover:bg-primary shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Use AI to enhance your goal description"
+                      >
+                        <SparkleIcon />
+                        {isEnhancingDescription ? 'Writing...' : newGoal.description ? 'Enhance with AI' : 'Write with AI'}
+                      </button>
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <label htmlFor="deadline" className="block text-sm font-medium text-text mb-1">

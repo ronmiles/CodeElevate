@@ -23,4 +23,4 @@ export class CreateGoalDto {
 export class UpdateGoalStatusDto {
   @IsEnum(GoalStatus)
   status: GoalStatus;
-} 
+}

@@ -1,4 +1,13 @@
-import { Controller, Get, Post, Body, Patch, Param, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { GoalsService } from './goals.service';
 import { CreateGoalDto, UpdateGoalStatusDto } from './dto/goals.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -11,6 +20,14 @@ export class GoalsController {
   @Post()
   create(@Request() req, @Body() createGoalDto: CreateGoalDto) {
     return this.goalsService.create(req.user.id, createGoalDto);
+  }
+
+  @Post('enhance-description')
+  enhanceDescription(
+    @Request() req,
+    @Body() data: { title: string; description?: string }
+  ) {
+    return this.goalsService.enhanceDescription(data.title, data.description);
   }
 
   @Get()
@@ -27,7 +44,7 @@ export class GoalsController {
   updateStatus(
     @Request() req,
     @Param('id') id: string,
-    @Body() updateGoalStatusDto: UpdateGoalStatusDto,
+    @Body() updateGoalStatusDto: UpdateGoalStatusDto
   ) {
     return this.goalsService.updateStatus(req.user.id, id, updateGoalStatusDto);
   }
@@ -36,8 +53,12 @@ export class GoalsController {
   updateCheckpointStatus(
     @Request() req,
     @Param('id') id: string,
-    @Body() body: { status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' },
+    @Body() body: { status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' }
   ) {
-    return this.goalsService.updateCheckpointStatus(req.user.id, id, body.status);
+    return this.goalsService.updateCheckpointStatus(
+      req.user.id,
+      id,
+      body.status
+    );
   }
-} 
+}

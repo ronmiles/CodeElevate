@@ -20,7 +20,19 @@ export interface LLMProvider {
 }
 
 // Helper function to ensure integer values
-export function ensureInteger(value: number | undefined, defaultValue: number): number {
+export function ensureInteger(
+  value: number | undefined,
+  defaultValue: number
+): number {
   if (value === undefined) return defaultValue;
   return Math.floor(value);
-} 
+}
+
+// Helper function to ensure valid temperature values
+export function ensureTemperature(
+  value: any,
+  defaultValue: number = 0.7
+): number {
+  if (typeof value !== 'number' || isNaN(value)) return defaultValue;
+  return Math.max(0, Math.min(1, value)); // Clamp between 0 and 1
+}
