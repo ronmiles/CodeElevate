@@ -1,8 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { exercisesApi, Exercise } from '../api/exercises.api';
+import {
+  exercisesApi,
+  Exercise,
+  CodeReviewComment,
+  CodeReviewSummary,
+} from '../api/exercises.api';
 import { useAuth } from '../contexts/AuthContext';
 import Editor from '@monaco-editor/react';
+import CodeReview from '../components/exercise/CodeReview';
+import ReviewSummary from '../components/exercise/ReviewSummary';
 
 export const ExercisePage: React.FC = () => {
   const { exerciseId } = useParams<{ exerciseId: string }>();
@@ -18,6 +25,13 @@ export const ExercisePage: React.FC = () => {
   const [statusMessage, setStatusMessage] = useState<string>('');
   const [showSolution, setShowSolution] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [reviewComments, setReviewComments] = useState<CodeReviewComment[]>([]);
+  const [reviewSummary, setReviewSummary] = useState<CodeReviewSummary | null>(
+    null
+  );
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [showReview, setShowReview] = useState(false);
+  const [reviewError, setReviewError] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const fetchExercise = async () => {
@@ -109,6 +123,59 @@ export const ExercisePage: React.FC = () => {
 
   const hideSolution = () => {
     setShowSolution(false);
+  };
+
+  const handleCodeReview = async () => {
+    if (!exerciseId || !token || !solution.trim()) return;
+
+    try {
+      setReviewLoading(true);
+      setStatusMessage('Generating code review...');
+      setShowReview(true);
+      setReviewError(undefined);
+
+      const reviewResponse = await exercisesApi.reviewCode(
+        exerciseId,
+        solution,
+        token
+      );
+
+      if (reviewResponse) {
+        setReviewComments(reviewResponse.comments);
+        setReviewSummary(reviewResponse.summary);
+        setStatusMessage('Code review completed');
+      } else {
+        setShowReview(false);
+        setStatusMessage('Failed to generate review. Please try again later.');
+      }
+    } catch (err) {
+      // Set review error for the CodeReview component
+      let errorMessage = 'Failed to generate code review';
+
+      if (err instanceof Error && err.message) {
+        if (err.message.includes('JSON')) {
+          errorMessage =
+            'AI service returned an invalid response. Please try again later.';
+        } else if (err.message.includes('timeout')) {
+          errorMessage =
+            'Request timed out. The AI service may be overloaded, please try again later.';
+        } else if (
+          err.message.includes('network') ||
+          err.message.includes('connection')
+        ) {
+          errorMessage =
+            'Network error. Please check your connection and try again.';
+        } else {
+          errorMessage = `Error: ${err.message}`;
+        }
+      }
+
+      setReviewError(errorMessage);
+      setStatusMessage(errorMessage);
+      console.error('Error generating code review:', err);
+    } finally {
+      setReviewLoading(false);
+    }
   };
 
   // Maps programming language names to Monaco Editor language IDs
@@ -287,6 +354,22 @@ export const ExercisePage: React.FC = () => {
                   </svg>
                   Example Solution
                 </>
+              ) : showReview ? (
+                <>
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5 mr-2 text-purple-500"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M18 13V5a2 2 0 00-2-2H4a2 2 0 00-2 2v8a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2zM5 7a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 100 2h3a1 1 0 100-2H6z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  AI Code Review
+                </>
               ) : (
                 <>
                   <svg
@@ -326,10 +409,10 @@ export const ExercisePage: React.FC = () => {
                   </svg>
                   Hide Solution
                 </button>
-              ) : (
+              ) : showReview ? (
                 <button
-                  onClick={handleSolutionRequest}
-                  className="px-4 py-2 bg-indigo-900 text-indigo-100 rounded-lg hover:bg-indigo-800 text-sm flex items-center shadow-sm transition-all duration-200"
+                  onClick={() => setShowReview(false)}
+                  className="px-4 py-2 bg-gray-700 text-text rounded-lg hover:bg-gray-600 text-sm flex items-center shadow-sm transition-all duration-200"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -337,20 +420,171 @@ export const ExercisePage: React.FC = () => {
                     viewBox="0 0 20 20"
                     fill="currentColor"
                   >
-                    <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
                     <path
                       fillRule="evenodd"
-                      d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                      d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z"
                       clipRule="evenodd"
                     />
                   </svg>
-                  View Example Solution
+                  Back to Editor
                 </button>
+              ) : (
+                <>
+                  <button
+                    onClick={handleSolutionRequest}
+                    className="px-4 py-2 bg-indigo-900 text-indigo-100 rounded-lg hover:bg-indigo-800 text-sm flex items-center shadow-sm transition-all duration-200"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4 mr-1"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                      <path
+                        fillRule="evenodd"
+                        d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    View Example Solution
+                  </button>
+                  <button
+                    onClick={handleCodeReview}
+                    disabled={!solution.trim() || reviewLoading}
+                    className={`px-4 py-2 bg-purple-900 text-purple-100 rounded-lg text-sm flex items-center shadow-sm transition-all duration-200 ${
+                      !solution.trim() || reviewLoading
+                        ? 'opacity-60 cursor-not-allowed'
+                        : 'hover:bg-purple-800'
+                    }`}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4 mr-1"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M18 13V5a2 2 0 00-2-2H4a2 2 0 00-2 2v8a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2zM5 7a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 100 2h3a1 1 0 100-2H6z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    Get AI Review
+                  </button>
+                </>
               )}
             </div>
           </div>
 
-          {!showSolution ? (
+          {showSolution ? (
+            <div className="mb-4">
+              <div className="p-4 bg-gradient-to-r from-amber-900 to-yellow-900 text-amber-100 rounded-lg mb-4 text-sm flex items-start border border-amber-800">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <div>
+                  <p className="font-medium mb-1">Learning Tip</p>
+                  <p>
+                    This is the example solution provided by our experts. You
+                    can use it as a reference, but we encourage you to try
+                    solving the exercise yourself first!
+                  </p>
+                </div>
+              </div>
+              <div className="h-96 border border-gray-700 rounded-lg overflow-hidden">
+                <Editor
+                  height="100%"
+                  language={getMonacoLanguage(exercise.language.name)}
+                  value={
+                    exercise.solution ||
+                    '// No example solution available for this exercise.'
+                  }
+                  theme="vs-dark"
+                  options={{
+                    readOnly: true,
+                    minimap: { enabled: false },
+                    scrollBeyondLastLine: false,
+                    fontSize: 14,
+                    fontFamily: 'Menlo, Monaco, "Courier New", monospace',
+                    automaticLayout: true,
+                    renderLineHighlight: 'all',
+                    scrollbar: {
+                      verticalScrollbarSize: 8,
+                      horizontalScrollbarSize: 8,
+                    },
+                    lineNumbers: 'on',
+                    glyphMargin: false,
+                    folding: true,
+                    lineDecorationsWidth: 10,
+                    lineNumbersMinChars: 3,
+                  }}
+                  beforeMount={(monaco) => {
+                    console.log(
+                      'Solution editor languages:',
+                      monaco.languages.getLanguages().map((l) => l.id)
+                    );
+                  }}
+                  onMount={(editor, monaco) => {
+                    console.log(
+                      `Mounted solution editor with language: ${getMonacoLanguage(
+                        exercise.language.name
+                      )}`
+                    );
+                  }}
+                />
+              </div>
+            </div>
+          ) : showReview ? (
+            <div className="mb-4">
+              <div className="p-4 bg-gradient-to-r from-purple-900 to-indigo-900 text-purple-100 rounded-lg mb-4 text-sm flex items-start border border-purple-800">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                <div>
+                  <p className="font-medium mb-1">AI Code Review</p>
+                  <p>
+                    This is an AI-generated review of your code. Hover over the
+                    colored markers on the left side to view detailed comments
+                    and suggestions.
+                  </p>
+                </div>
+              </div>
+              <div className="h-96">
+                <CodeReview
+                  code={solution}
+                  language={getMonacoLanguage(exercise.language.name)}
+                  comments={reviewComments}
+                  isLoading={reviewLoading}
+                  error={reviewError}
+                />
+              </div>
+
+              {/* Review Summary Component */}
+              {reviewComments.length > 0 &&
+                !reviewLoading &&
+                !reviewError &&
+                reviewSummary && <ReviewSummary summary={reviewSummary} />}
+            </div>
+          ) : (
             <div className="mb-4">
               <div className="flex items-center justify-between mb-3">
                 <label className="text-text-secondary flex items-center">
@@ -433,73 +667,6 @@ export const ExercisePage: React.FC = () => {
                 />
               </div>
             </div>
-          ) : (
-            <div className="mb-4">
-              <div className="p-4 bg-gradient-to-r from-amber-900 to-yellow-900 text-amber-100 rounded-lg mb-4 text-sm flex items-start border border-amber-800">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5 mr-2 flex-shrink-0 mt-0.5"
-                  viewBox="0 0 20 20"
-                  fill="currentColor"
-                >
-                  <path
-                    fillRule="evenodd"
-                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                    clipRule="evenodd"
-                  />
-                </svg>
-                <div>
-                  <p className="font-medium mb-1">Learning Tip</p>
-                  <p>
-                    This is the example solution provided by our experts. You
-                    can use it as a reference, but we encourage you to try
-                    solving the exercise yourself first!
-                  </p>
-                </div>
-              </div>
-              <div className="h-96 border border-gray-700 rounded-lg overflow-hidden">
-                <Editor
-                  height="100%"
-                  language={getMonacoLanguage(exercise.language.name)}
-                  value={
-                    exercise.solution ||
-                    '// No example solution available for this exercise.'
-                  }
-                  theme="vs-dark"
-                  options={{
-                    readOnly: true,
-                    minimap: { enabled: false },
-                    scrollBeyondLastLine: false,
-                    fontSize: 14,
-                    fontFamily: 'Menlo, Monaco, "Courier New", monospace',
-                    automaticLayout: true,
-                    renderLineHighlight: 'all',
-                    scrollbar: {
-                      verticalScrollbarSize: 8,
-                      horizontalScrollbarSize: 8,
-                    },
-                    lineNumbers: 'on',
-                    glyphMargin: false,
-                    folding: true,
-                    lineDecorationsWidth: 10,
-                    lineNumbersMinChars: 3,
-                  }}
-                  beforeMount={(monaco) => {
-                    console.log(
-                      'Solution editor languages:',
-                      monaco.languages.getLanguages().map((l) => l.id)
-                    );
-                  }}
-                  onMount={(editor, monaco) => {
-                    console.log(
-                      `Mounted solution editor with language: ${getMonacoLanguage(
-                        exercise.language.name
-                      )}`
-                    );
-                  }}
-                />
-              </div>
-            </div>
           )}
 
           <div className="flex items-center justify-between">
@@ -515,7 +682,7 @@ export const ExercisePage: React.FC = () => {
               {statusMessage}
             </span>
 
-            {!showSolution && (
+            {!showSolution && !showReview && (
               <button
                 onClick={handleSubmit}
                 disabled={submitStatus === 'loading' || !solution.trim()}

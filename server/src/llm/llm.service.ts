@@ -1,6 +1,10 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { LLMProvider, LLMConfig, ensureInteger } from './interfaces/llm.interface';
+import {
+  LLMProvider,
+  LLMConfig,
+  ensureInteger,
+} from './interfaces/llm.interface';
 import { OpenAIProvider } from './providers/openai.provider';
 import { GroqProvider } from './providers/groq.provider';
 
@@ -20,9 +24,13 @@ export class LLMService {
     // Initialize Groq provider (primary)
     const groqConfig: LLMConfig = {
       apiKey: this.configService.get<string>('GROQ_API_KEY')!,
-      model: this.configService.get<string>('GROQ_MODEL') || 'mixtral-8x7b-32768',
+      model:
+        this.configService.get<string>('GROQ_MODEL') || 'mixtral-8x7b-32768',
       temperature: this.configService.get<number>('GROQ_TEMPERATURE') || 0.7,
-      maxTokens: ensureInteger(this.configService.get<number>('GROQ_MAX_TOKENS'), 2000),
+      maxTokens: ensureInteger(
+        this.configService.get<number>('GROQ_MAX_TOKENS'),
+        2000
+      ),
     };
     this.providers.set('groq', new GroqProvider(groqConfig));
 
@@ -31,7 +39,10 @@ export class LLMService {
       apiKey: this.configService.get<string>('OPENAI_API_KEY')!,
       model: this.configService.get<string>('OPENAI_MODEL') || 'gpt-3.5-turbo',
       temperature: this.configService.get<number>('OPENAI_TEMPERATURE') || 0.7,
-      maxTokens: ensureInteger(this.configService.get<number>('OPENAI_MAX_TOKENS'), 2000),
+      maxTokens: ensureInteger(
+        this.configService.get<number>('OPENAI_MAX_TOKENS'),
+        2000
+      ),
     };
     this.providers.set('openai', new OpenAIProvider(openaiConfig));
   }
@@ -46,10 +57,58 @@ export class LLMService {
   }
 
   async generateText(prompt: string, provider?: LLMProviderType) {
-    return this.getProvider(provider).generateText(prompt);
+    try {
+      return await this.getProvider(provider).generateText(prompt);
+    } catch (error) {
+      // Enhance error message for better client-side handling
+      if (error.message?.includes('JSON')) {
+        throw new Error(`JSON formatting error: ${error.message}`);
+      }
+
+      if (error.message?.includes('timeout') || error.code === 'ETIMEDOUT') {
+        throw new Error(
+          'Request to AI service timed out. Please try again later.'
+        );
+      }
+
+      if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+        throw new Error(
+          'Failed to connect to AI service. Service may be unavailable.'
+        );
+      }
+
+      // Pass through the original error if no specific handling is needed
+      throw error;
+    }
   }
 
-  async generateJson<T>(prompt: string, schema: string, provider?: LLMProviderType) {
-    return this.getProvider(provider).generateJson<T>(prompt, schema);
+  async generateJson<T>(
+    prompt: string,
+    schema: string,
+    provider?: LLMProviderType
+  ) {
+    try {
+      return await this.getProvider(provider).generateJson<T>(prompt, schema);
+    } catch (error) {
+      // Enhance error message for better client-side handling
+      if (error.message?.includes('JSON')) {
+        throw new Error(`JSON formatting error: ${error.message}`);
+      }
+
+      if (error.message?.includes('timeout') || error.code === 'ETIMEDOUT') {
+        throw new Error(
+          'Request to AI service timed out. Please try again later.'
+        );
+      }
+
+      if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+        throw new Error(
+          'Failed to connect to AI service. Service may be unavailable.'
+        );
+      }
+
+      // Pass through the original error if no specific handling is needed
+      throw error;
+    }
   }
-} 
+}
