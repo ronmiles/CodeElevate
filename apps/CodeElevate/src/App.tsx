@@ -1,12 +1,15 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ChakraProvider } from '@chakra-ui/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from './contexts/AuthContext';
+import {
+  Route,
+  BrowserRouter as Router,
+  Routes
+} from 'react-router-dom';
 import { SignIn } from './components/auth/SignIn';
 import { SignUp } from './components/auth/SignUp';
 import { Dashboard } from './components/dashboard/Dashboard';
+import { AuthProvider } from './contexts/AuthContext';
 import { LearningGoalPage } from './pages/LearningGoalPage';
-import { PrivateRoute } from './components/auth/PrivateRoute';
 import { theme } from './theme';
 
 const queryClient = new QueryClient({
@@ -20,31 +23,15 @@ const queryClient = new QueryClient({
 
 function App() {
   return (
-    <ChakraProvider theme={theme}>
+    <ChakraProvider value={theme}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <Router>
             <Routes>
               <Route path="/signin" element={<SignIn />} />
               <Route path="/signup" element={<SignUp />} />
-              <Route
-                path="/dashboard"
-                element={
-                  <PrivateRoute>
-                    <Dashboard />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/goal/:goalId"
-                element={
-                  <PrivateRoute>
-                    <LearningGoalPage />
-                  </PrivateRoute>
-                }
-              />
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/goal/:goalId" element={<LearningGoalPage />} />
             </Routes>
           </Router>
         </AuthProvider>
@@ -53,4 +40,4 @@ function App() {
   );
 }
 
-export default App; 
+export default App;
