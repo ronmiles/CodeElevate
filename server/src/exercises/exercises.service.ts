@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ForbiddenException,
+  BadRequestException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -382,5 +383,185 @@ export class ExercisesService {
         createdAt: 'desc',
       },
     });
+  }
+
+  async reviewCode(userId: string, exerciseId: string, code: string) {
+    // Check if exercise exists and user has access
+    const exercise = await this.getExercise(userId, exerciseId);
+    if (!exercise) {
+      throw new NotFoundException(`Exercise not found`);
+    }
+
+    if (!code || code.trim() === '') {
+      throw new BadRequestException('Code content is required');
+    }
+
+    // Create a prompt for the LLM to review the code
+    const prompt = `
+      You are an expert code reviewer for a coding education platform. 
+      You need to review this code submission for the exercise: "${
+        exercise.title
+      }".
+      
+      Exercise description: ${exercise.description}
+      
+      Code submitted:
+      \`\`\`${exercise.language?.name || 'code'}
+      ${code}
+      \`\`\`
+      
+      Analyze the code for:
+      1. Correctness: Does it meet the requirements?
+      2. Style: Does it follow good coding practices?
+      3. Best practices: Are there any improvements?
+      
+      Provide comments tied to specific lines. 
+      
+      YOUR RESPONSE MUST BE VALID JSON WITH NO ADDITIONAL TEXT BEFORE OR AFTER THE JSON OBJECT.
+      
+      The response should be ONLY a JSON object with this structure and no additional text outside the JSON:
+      {
+        "comments": [
+          {
+            "line": <line number>,
+            "type": "suggestion" | "issue" | "praise",
+            "comment": "<your detailed comment>"
+          }
+        ],
+        "summary": {
+          "strengths": "<a concise paragraph summarizing the code's strengths>",
+          "improvements": "<a concise paragraph summarizing suggested improvements>",
+          "counts": {
+            "praise": <number of praise comments>,
+            "suggestion": <number of suggestion comments>,
+            "issue": <number of issue comments>
+          }
+        }
+      }
+      
+      The summary should be from the perspective of an experienced software engineer, highlighting overall patterns and providing a practical TL;DR of the review.
+      
+      Focus on being helpful, educational, and encouraging. Explain why certain practices are good or could be improved.
+      
+      IMPORTANT: Return ONLY the JSON object without any additional text or explanation.
+    `;
+
+    try {
+      // Define the expected JSON structure
+      const schema = `
+        type CodeReviewResponse = {
+          comments: {
+            line: number;
+            type: "suggestion" | "issue" | "praise";
+            comment: string;
+          }[];
+          summary: {
+            strengths: string;
+            improvements: string;
+            counts: {
+              praise: number;
+              suggestion: number;
+              issue: number;
+            }
+          }
+        };
+      `;
+
+      // Generate the review using LLM
+      const rawResponse = await this.llmService.generateText(prompt);
+
+      // Try to extract JSON from the response
+      let jsonStr = rawResponse.content.trim();
+
+      // Find JSON object start/end if they exist
+      const startIdx = jsonStr.indexOf('{');
+      const endIdx = jsonStr.lastIndexOf('}');
+
+      if (startIdx === -1 || endIdx === -1 || endIdx <= startIdx) {
+        throw new Error('Invalid JSON response format');
+      }
+
+      // Extract only the JSON object part
+      jsonStr = jsonStr.substring(startIdx, endIdx + 1);
+
+      // Parse the JSON
+      let reviewResponse: {
+        comments: { line: number; type: string; comment: string }[];
+        summary: {
+          strengths: string;
+          improvements: string;
+          counts: {
+            praise: number;
+            suggestion: number;
+            issue: number;
+          };
+        };
+      };
+
+      try {
+        reviewResponse = JSON.parse(jsonStr);
+      } catch (parseError) {
+        throw new Error(`Failed to parse JSON: ${parseError.message}`);
+      }
+
+      if (!reviewResponse.comments || !Array.isArray(reviewResponse.comments)) {
+        throw new Error('Invalid review format: comments array is missing');
+      }
+
+      if (!reviewResponse.summary) {
+        // Create a default summary if one isn't provided
+        const counts = {
+          praise: 0,
+          suggestion: 0,
+          issue: 0,
+        };
+
+        reviewResponse.comments.forEach((comment) => {
+          if (counts[comment.type] !== undefined) {
+            counts[comment.type]++;
+          }
+        });
+
+        reviewResponse.summary = {
+          strengths:
+            'The AI review identified some good practices in your code.',
+          improvements:
+            'Consider implementing the suggestions to improve your code quality.',
+          counts,
+        };
+      }
+
+      // Validate each review comment
+      const validatedComments = reviewResponse.comments.map((comment) => {
+        // Ensure line is a number
+        if (typeof comment.line !== 'number' || isNaN(comment.line)) {
+          comment.line = 1; // Default to line 1 if invalid
+        }
+
+        // Ensure type is valid
+        if (!['suggestion', 'issue', 'praise'].includes(comment.type)) {
+          comment.type = 'suggestion'; // Default to suggestion if invalid
+        }
+
+        // Ensure comment is a string
+        if (typeof comment.comment !== 'string') {
+          comment.comment = String(comment.comment);
+        }
+
+        return comment;
+      });
+
+      // Sort comments by line number
+      const sortedComments = validatedComments.sort((a, b) => a.line - b.line);
+
+      return {
+        comments: sortedComments,
+        summary: reviewResponse.summary,
+      };
+    } catch (error) {
+      throw new BadRequestException(
+        `Failed to generate code review: ${error.message}`
+      );
+    }
   }
 }

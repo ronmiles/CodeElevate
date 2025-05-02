@@ -26,13 +26,22 @@ export class ExercisesController {
   generateExercise(
     @Request() req,
     @Body('goalId') goalId: string,
-    @Body('checkpointId') checkpointId: string,
+    @Body('checkpointId') checkpointId: string
   ) {
     return this.exercisesService.generateExercise(
       req.user.id,
       goalId,
-      checkpointId,
+      checkpointId
     );
+  }
+
+  @Post(':id/review')
+  reviewCode(
+    @Request() req,
+    @Param('id') id: string,
+    @Body('code') code: string
+  ) {
+    return this.exercisesService.reviewCode(req.user.id, id, code);
   }
 
   @Get()
@@ -41,8 +50,14 @@ export class ExercisesController {
   }
 
   @Get('checkpoint/:checkpointId')
-  getCheckpointExercises(@Request() req, @Param('checkpointId') checkpointId: string) {
-    return this.exercisesService.getCheckpointExercises(req.user.id, checkpointId);
+  getCheckpointExercises(
+    @Request() req,
+    @Param('checkpointId') checkpointId: string
+  ) {
+    return this.exercisesService.getCheckpointExercises(
+      req.user.id,
+      checkpointId
+    );
   }
 
   @Get('progress')
@@ -59,8 +74,12 @@ export class ExercisesController {
   updateProgress(
     @Request() req,
     @Param('id') id: string,
-    @Body() updateProgressDto: UpdateProgressDto,
+    @Body() updateProgressDto: UpdateProgressDto
   ) {
-    return this.exercisesService.updateProgress(req.user.id, id, updateProgressDto);
+    return this.exercisesService.updateProgress(
+      req.user.id,
+      id,
+      updateProgressDto
+    );
   }
-} 
+}

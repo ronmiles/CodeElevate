@@ -53,6 +53,27 @@ export interface ProgressStats {
   byDifficulty: Record<string, { total: number; completed: number }>;
 }
 
+export interface CodeReviewComment {
+  line: number;
+  type: 'suggestion' | 'issue' | 'praise';
+  comment: string;
+}
+
+export interface CodeReviewSummary {
+  strengths: string;
+  improvements: string;
+  counts: {
+    praise: number;
+    suggestion: number;
+    issue: number;
+  };
+}
+
+export interface CodeReviewResponse {
+  comments: CodeReviewComment[];
+  summary: CodeReviewSummary;
+}
+
 const handleApiError = (error: any) => {
   if (error.response) {
     throw new Error(error.response.data.message || 'An error occurred');
@@ -154,6 +175,27 @@ export const exercisesApi = {
           Authorization: `Bearer ${token}`,
         },
       });
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  reviewCode: async (
+    exerciseId: string,
+    code: string,
+    token: string
+  ): Promise<CodeReviewResponse | undefined> => {
+    try {
+      const response = await api.post(
+        `/exercises/${exerciseId}/review`,
+        { code },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
       return response.data;
     } catch (error) {
       handleApiError(error);
