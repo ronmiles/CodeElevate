@@ -55,22 +55,28 @@ export interface ProgressStats {
 
 export interface CodeReviewComment {
   line: number;
-  type: 'suggestion' | 'issue' | 'praise';
+  type: 'suggestion' | 'error' | 'praise';
   comment: string;
+  severity?: 'low' | 'medium' | 'high';
+}
+
+export interface LogicBlock {
+  description: string;
+  lineRange: [number, number];
+  feedback: string;
+  type: 'strength' | 'improvement' | 'critical';
+  severity?: 'low' | 'medium' | 'high';
 }
 
 export interface CodeReviewSummary {
   strengths: string;
   improvements: string;
-  counts: {
-    praise: number;
-    suggestion: number;
-    issue: number;
-  };
+  overallAssessment: string;
 }
 
 export interface CodeReviewResponse {
-  comments: CodeReviewComment[];
+  logicBlocks: LogicBlock[];
+  specificIssues: CodeReviewComment[];
   summary: CodeReviewSummary;
 }
 

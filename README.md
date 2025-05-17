@@ -8,12 +8,14 @@ CodeElevate is an AI-powered learning platform that helps developers master prog
 - 🗺️ AI-Generated Learning Roadmaps
 - 💻 Interactive Coding Exercises
 - 🤖 AI-Powered Exercise Generation
+- 🔍 Advanced AI Code Review System
 - 📊 Progress Tracking
 - 🎨 Modern, Responsive UI
 
 ## Tech Stack
 
 - **Frontend**:
+
   - React with TypeScript
   - Material-UI
   - TanStack Query (React Query)
@@ -30,6 +32,7 @@ CodeElevate is an AI-powered learning platform that helps developers master prog
 ## Prerequisites
 
 Before you begin, ensure you have the following installed:
+
 - Node.js (v18 or higher)
 - pnpm (v8 or higher)
 - PostgreSQL (v14 or higher)
@@ -38,12 +41,14 @@ Before you begin, ensure you have the following installed:
 ## Environment Setup
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/yourusername/CodeElevate.git
 cd CodeElevate
 ```
 
 2. Install dependencies:
+
 ```bash
 pnpm install
 ```
@@ -51,6 +56,7 @@ pnpm install
 3. Create environment files:
 
 Create `server/.env`:
+
 ```env
 # Database
 DATABASE_URL="postgresql://username:password@localhost:5432/codeelevate"
@@ -72,11 +78,13 @@ OPENAI_MAX_TOKENS=2000
 ```
 
 Create `apps/CodeElevate/.env`:
+
 ```env
 VITE_API_URL="http://localhost:3333/api"
 ```
 
 4. Set up the database:
+
 ```bash
 # Navigate to server directory
 cd server
@@ -106,6 +114,7 @@ npx nx serve CodeElevate
 ```
 
 2. Access the application:
+
 - Frontend: http://localhost:4200
 - Backend API: http://localhost:3333/api
 
@@ -158,11 +167,13 @@ CodeElevate/
 ### Common Issues
 
 1. **Database Connection Error**
+
    - Verify PostgreSQL is running
    - Check DATABASE_URL in `server/.env`
    - Ensure database exists
 
 2. **Prisma Issues**
+
    - Run `npx prisma generate` after schema changes
    - Run `npx prisma migrate reset` to reset database
    - Check migration history with `npx prisma migrate status`
@@ -175,6 +186,7 @@ CodeElevate/
 ### Getting Help
 
 If you encounter any issues:
+
 1. Check the [Issues](https://github.com/yourusername/CodeElevate/issues) page
 2. Search for similar problems in closed issues
 3. Create a new issue with:
@@ -186,3 +198,31 @@ If you encounter any issues:
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Advanced Code Review Features
+
+CodeElevate includes a sophisticated AI-powered code review system that provides:
+
+- **Logical Structure Analysis**: Identifies patterns in multi-line code blocks
+  - Strengths: Well-implemented patterns and algorithms
+  - Improvements: Working code that could be optimized
+  - Critical Issues: Fundamental flaws requiring major restructuring
+- **Line-Specific Feedback**:
+
+  - Errors: Bugs and incorrect implementations with correction suggestions
+  - Suggestions: Style improvements and best practices
+  - Praise: Recognition of excellent code practices
+
+- **Severity-Based Prioritization**:
+
+  - High: Critical bugs that require immediate attention
+  - Medium: Important improvements that should be addressed
+  - Low: Style suggestions and minor enhancements
+
+- **Visual Indicators**:
+  - Color-coded feedback based on type and severity
+  - Inline comments with helpful context
+  - Hover messages with detailed explanations
+  - Summary view with strengths, improvements, and overall assessment
+
+This feature helps students develop better coding habits through actionable feedback and clear explanation of programming concepts.

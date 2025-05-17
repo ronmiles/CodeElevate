@@ -6,7 +6,6 @@ import {
   Param,
   UseGuards,
   Request,
-  Query,
 } from '@nestjs/common';
 import { ExercisesService } from './exercises.service';
 import { CreateExerciseDto, UpdateProgressDto } from './dto/exercises.dto';

@@ -5,6 +5,7 @@ import {
   Exercise,
   CodeReviewComment,
   CodeReviewSummary,
+  LogicBlock,
 } from '../api/exercises.api';
 import { useAuth } from '../contexts/AuthContext';
 import Editor from '@monaco-editor/react';
@@ -26,6 +27,7 @@ export const ExercisePage: React.FC = () => {
   const [showSolution, setShowSolution] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [reviewComments, setReviewComments] = useState<CodeReviewComment[]>([]);
+  const [logicBlocks, setLogicBlocks] = useState<LogicBlock[]>([]);
   const [reviewSummary, setReviewSummary] = useState<CodeReviewSummary | null>(
     null
   );
@@ -141,7 +143,8 @@ export const ExercisePage: React.FC = () => {
       );
 
       if (reviewResponse) {
-        setReviewComments(reviewResponse.comments);
+        setReviewComments(reviewResponse.specificIssues);
+        setLogicBlocks(reviewResponse.logicBlocks);
         setReviewSummary(reviewResponse.summary);
         setStatusMessage('Code review completed');
       } else {
@@ -573,16 +576,23 @@ export const ExercisePage: React.FC = () => {
                   code={solution}
                   language={getMonacoLanguage(exercise.language.name)}
                   comments={reviewComments}
+                  logicBlocks={logicBlocks}
                   isLoading={reviewLoading}
                   error={reviewError}
                 />
               </div>
 
               {/* Review Summary Component */}
-              {reviewComments.length > 0 &&
+              {(reviewComments.length > 0 || logicBlocks.length > 0) &&
                 !reviewLoading &&
                 !reviewError &&
-                reviewSummary && <ReviewSummary summary={reviewSummary} />}
+                reviewSummary && (
+                  <ReviewSummary
+                    summary={reviewSummary}
+                    logicBlocks={logicBlocks}
+                    specificIssues={reviewComments}
+                  />
+                )}
             </div>
           ) : (
             <div className="mb-4">

@@ -386,8 +386,8 @@ export class ExercisesService {
   }
 
   async reviewCode(userId: string, exerciseId: string, code: string) {
-    // Check if exercise exists and user has access
     const exercise = await this.getExercise(userId, exerciseId);
+
     if (!exercise) {
       throw new NotFoundException(`Exercise not found`);
     }
@@ -398,82 +398,86 @@ export class ExercisesService {
 
     // Create a prompt for the LLM to review the code
     const prompt = `
-      You are an expert code reviewer for a coding education platform. 
+      You are an expert code reviewer for a coding education platform.
       You need to review this code submission for the exercise: "${
         exercise.title
       }".
-      
+
       Exercise description: ${exercise.description}
-      
+
       Code submitted:
       \`\`\`${exercise.language?.name || 'code'}
       ${code}
       \`\`\`
-      
+
       Analyze the code for:
       1. Correctness: Does it meet the requirements?
-      2. Style: Does it follow good coding practices?
-      3. Best practices: Are there any improvements?
-      
-      Provide comments tied to specific lines. 
-      
+      2. Logic: Are the algorithms and approaches appropriate?
+      3. Style and best practices: Does it follow good coding practices?
+
       YOUR RESPONSE MUST BE VALID JSON WITH NO ADDITIONAL TEXT BEFORE OR AFTER THE JSON OBJECT.
-      
+
       The response should be ONLY a JSON object with this structure and no additional text outside the JSON:
       {
-        "comments": [
+        "logicBlocks": [
+          {
+            "description": "<brief description of what this logical block does>",
+            "lineRange": [<start_line>, <end_line>],
+            "feedback": "<detailed feedback about this logical section of code>",
+            "type": "strength" | "improvement" | "critical",
+            "severity": "low" | "medium" | "high"
+          }
+        ],
+        "specificIssues": [
           {
             "line": <line number>,
-            "type": "suggestion" | "issue" | "praise",
-            "comment": "<your detailed comment>"
+            "type": "suggestion" | "error" | "praise",
+            "comment": "<your detailed comment>",
+            "severity": "low" | "medium" | "high"
           }
         ],
         "summary": {
           "strengths": "<a concise paragraph summarizing the code's strengths>",
           "improvements": "<a concise paragraph summarizing suggested improvements>",
-          "counts": {
-            "praise": <number of praise comments>,
-            "suggestion": <number of suggestion comments>,
-            "issue": <number of issue comments>
-          }
+          "overallAssessment": "<an overall assessment of the solution quality>"
         }
       }
-      
+
+      IMPORTANT GUIDELINES:
+      - Use "logicBlocks" for multi-line code patterns and algorithmic concepts that span several lines:
+        * "strength" type: For well-implemented algorithms or design patterns
+        * "improvement" type: For working but suboptimal implementations that could be enhanced
+        * "critical" type: For fundamentally flawed logic that needs major restructuring
+
+      - Use "specificIssues" for individual line-level comments:
+        * "praise" type: For excellent code practices, clever solutions, or optimal implementations
+        * "suggestion" type: For style improvements, best practices, minor optimizations (use lightbulb icon)
+        * "error" type: For bugs, syntax errors, incorrect implementations (use error icon)
+
+      - Apply appropriate severity for each issue:
+        * "high": Critical bugs or major issues that must be fixed immediately
+        * "medium": Important improvements that should be addressed
+        * "low": Minor enhancements or style suggestions
+
+      - Do not duplicate feedback between logicBlocks and specificIssues
+      - Be precise about line numbers in specificIssues
+      - In logicBlocks, provide exact start and end line numbers
+      - Never use "suggestion" type for actual errors or bugs - use "error" type instead
+      - Keep feedback actionable and educational - explain why each issue matters
+      - Include code examples in your feedback when appropriate
+
       The summary should be from the perspective of an experienced software engineer, highlighting overall patterns and providing a practical TL;DR of the review.
-      
+
       Focus on being helpful, educational, and encouraging. Explain why certain practices are good or could be improved.
-      
+
       IMPORTANT: Return ONLY the JSON object without any additional text or explanation.
     `;
 
     try {
-      // Define the expected JSON structure
-      const schema = `
-        type CodeReviewResponse = {
-          comments: {
-            line: number;
-            type: "suggestion" | "issue" | "praise";
-            comment: string;
-          }[];
-          summary: {
-            strengths: string;
-            improvements: string;
-            counts: {
-              praise: number;
-              suggestion: number;
-              issue: number;
-            }
-          }
-        };
-      `;
-
-      // Generate the review using LLM
       const rawResponse = await this.llmService.generateText(prompt);
 
-      // Try to extract JSON from the response
       let jsonStr = rawResponse.content.trim();
 
-      // Find JSON object start/end if they exist
       const startIdx = jsonStr.indexOf('{');
       const endIdx = jsonStr.lastIndexOf('}');
 
@@ -481,20 +485,26 @@ export class ExercisesService {
         throw new Error('Invalid JSON response format');
       }
 
-      // Extract only the JSON object part
       jsonStr = jsonStr.substring(startIdx, endIdx + 1);
 
-      // Parse the JSON
       let reviewResponse: {
-        comments: { line: number; type: string; comment: string }[];
+        logicBlocks: {
+          description: string;
+          lineRange: [number, number];
+          feedback: string;
+          type: string;
+          severity: string;
+        }[];
+        specificIssues: {
+          line: number;
+          type: string;
+          comment: string;
+          severity: string;
+        }[];
         summary: {
           strengths: string;
           improvements: string;
-          counts: {
-            praise: number;
-            suggestion: number;
-            issue: number;
-          };
+          overallAssessment: string;
         };
       };
 
@@ -504,58 +514,154 @@ export class ExercisesService {
         throw new Error(`Failed to parse JSON: ${parseError.message}`);
       }
 
-      if (!reviewResponse.comments || !Array.isArray(reviewResponse.comments)) {
-        throw new Error('Invalid review format: comments array is missing');
+      if (
+        !reviewResponse.logicBlocks ||
+        !Array.isArray(reviewResponse.logicBlocks)
+      ) {
+        reviewResponse.logicBlocks = [];
+      }
+
+      if (
+        !reviewResponse.specificIssues ||
+        !Array.isArray(reviewResponse.specificIssues)
+      ) {
+        reviewResponse.specificIssues = [];
       }
 
       if (!reviewResponse.summary) {
         // Create a default summary if one isn't provided
-        const counts = {
-          praise: 0,
-          suggestion: 0,
-          issue: 0,
-        };
-
-        reviewResponse.comments.forEach((comment) => {
-          if (counts[comment.type] !== undefined) {
-            counts[comment.type]++;
-          }
-        });
-
         reviewResponse.summary = {
           strengths:
             'The AI review identified some good practices in your code.',
           improvements:
             'Consider implementing the suggestions to improve your code quality.',
-          counts,
+          overallAssessment:
+            'The overall assessment of the solution quality is positive.',
         };
       }
 
-      // Validate each review comment
-      const validatedComments = reviewResponse.comments.map((comment) => {
+      // Validate each specific issue
+      const validatedIssues = reviewResponse.specificIssues.map((issue) => {
         // Ensure line is a number
-        if (typeof comment.line !== 'number' || isNaN(comment.line)) {
-          comment.line = 1; // Default to line 1 if invalid
+        if (typeof issue.line !== 'number' || isNaN(issue.line)) {
+          issue.line = 1; // Default to line 1 if invalid
         }
 
         // Ensure type is valid
-        if (!['suggestion', 'issue', 'praise'].includes(comment.type)) {
-          comment.type = 'suggestion'; // Default to suggestion if invalid
+        if (!['suggestion', 'error', 'praise'].includes(issue.type)) {
+          // If it was "issue" in the response, convert it to "error" for consistency
+          issue.type = issue.type === 'issue' ? 'error' : 'suggestion';
         }
 
-        // Ensure comment is a string
-        if (typeof comment.comment !== 'string') {
-          comment.comment = String(comment.comment);
+        // Ensure severity is valid and appropriate for the type
+        if (
+          !issue.severity ||
+          !['low', 'medium', 'high'].includes(issue.severity)
+        ) {
+          issue.severity =
+            issue.type === 'error'
+              ? 'high'
+              : issue.type === 'suggestion'
+              ? 'medium'
+              : 'low';
+        } else if (issue.type === 'praise' && issue.severity === 'high') {
+          // Praise should never be high severity
+          issue.severity = 'medium';
+        } else if (issue.type === 'error' && issue.severity === 'low') {
+          // Errors should never be low severity
+          issue.severity = 'medium';
         }
 
-        return comment;
+        // Ensure comment is a string and has appropriate length
+        if (typeof issue.comment !== 'string') {
+          issue.comment = String(issue.comment);
+        }
+
+        // Make sure comments are not too long
+        if (issue.comment.length > 500) {
+          issue.comment = issue.comment.substring(0, 497) + '...';
+        }
+
+        return issue;
       });
 
       // Sort comments by line number
-      const sortedComments = validatedComments.sort((a, b) => a.line - b.line);
+      const sortedIssues = validatedIssues.sort((a, b) => a.line - b.line);
+
+      // Validate each logic block
+      const validatedLogicBlocks = reviewResponse.logicBlocks.map((block) => {
+        // Ensure description is a string
+        if (typeof block.description !== 'string') {
+          block.description = String(block.description);
+        }
+
+        // Make sure descriptions are not too long
+        if (block.description.length > 100) {
+          block.description = block.description.substring(0, 97) + '...';
+        }
+
+        // Ensure lineRange is a valid array of two numbers
+        if (!Array.isArray(block.lineRange) || block.lineRange.length !== 2) {
+          block.lineRange = [1, 1];
+        } else {
+          block.lineRange = [
+            typeof block.lineRange[0] === 'number' ? block.lineRange[0] : 1,
+            typeof block.lineRange[1] === 'number' ? block.lineRange[1] : 1,
+          ];
+
+          // Make sure start line <= end line
+          if (block.lineRange[0] > block.lineRange[1]) {
+            const temp = block.lineRange[0];
+            block.lineRange[0] = block.lineRange[1];
+            block.lineRange[1] = temp;
+          }
+        }
+
+        // Ensure feedback is a string
+        if (typeof block.feedback !== 'string') {
+          block.feedback = String(block.feedback);
+        }
+
+        // Make sure feedback is not too long
+        if (block.feedback.length > 800) {
+          block.feedback = block.feedback.substring(0, 797) + '...';
+        }
+
+        // Ensure type is valid and convert old "issue" type to "critical"
+        if (!['strength', 'improvement', 'critical'].includes(block.type)) {
+          block.type = block.type === 'issue' ? 'critical' : 'improvement';
+        }
+
+        // Ensure severity is valid and appropriate for the type
+        if (
+          !block.severity ||
+          !['low', 'medium', 'high'].includes(block.severity)
+        ) {
+          block.severity =
+            block.type === 'critical'
+              ? 'high'
+              : block.type === 'improvement'
+              ? 'medium'
+              : 'low';
+        } else if (block.type === 'strength' && block.severity === 'high') {
+          // Strengths default to medium unless explicitly set lower
+          block.severity = 'medium';
+        } else if (block.type === 'critical' && block.severity === 'low') {
+          // Critical blocks should never be low severity
+          block.severity = 'medium';
+        }
+
+        return block;
+      });
+
+      // Sort logic blocks by starting line
+      const sortedLogicBlocks = validatedLogicBlocks.sort(
+        (a, b) => a.lineRange[0] - b.lineRange[0]
+      );
 
       return {
-        comments: sortedComments,
+        logicBlocks: sortedLogicBlocks,
+        specificIssues: sortedIssues,
         summary: reviewResponse.summary,
       };
     } catch (error) {
