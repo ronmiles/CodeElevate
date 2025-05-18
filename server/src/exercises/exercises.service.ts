@@ -386,8 +386,8 @@ export class ExercisesService {
   }
 
   async reviewCode(userId: string, exerciseId: string, code: string) {
-    // Check if exercise exists and user has access
     const exercise = await this.getExercise(userId, exerciseId);
+
     if (!exercise) {
       throw new NotFoundException(`Exercise not found`);
     }
@@ -396,84 +396,105 @@ export class ExercisesService {
       throw new BadRequestException('Code content is required');
     }
 
-    // Create a prompt for the LLM to review the code
-    const prompt = `
-      You are an expert code reviewer for a coding education platform. 
-      You need to review this code submission for the exercise: "${
-        exercise.title
-      }".
-      
-      Exercise description: ${exercise.description}
-      
-      Code submitted:
+    // Step 1: Generate a human-like code review with bullet points
+    const step1Prompt = `
+      Your job is to review the following code submission and identify any issues or notable qualities.
+
+      Exercise title: "${exercise.title}"
+
+      Exercise description:
+      ${exercise.description}
+
+      Submitted code:
       \`\`\`${exercise.language?.name || 'code'}
       ${code}
       \`\`\`
-      
-      Analyze the code for:
-      1. Correctness: Does it meet the requirements?
-      2. Style: Does it follow good coding practices?
-      3. Best practices: Are there any improvements?
-      
-      Provide comments tied to specific lines. 
-      
-      YOUR RESPONSE MUST BE VALID JSON WITH NO ADDITIONAL TEXT BEFORE OR AFTER THE JSON OBJECT.
-      
-      The response should be ONLY a JSON object with this structure and no additional text outside the JSON:
-      {
-        "comments": [
-          {
-            "line": <line number>,
-            "type": "suggestion" | "issue" | "praise",
-            "comment": "<your detailed comment>"
-          }
-        ],
-        "summary": {
-          "strengths": "<a concise paragraph summarizing the code's strengths>",
-          "improvements": "<a concise paragraph summarizing suggested improvements>",
-          "counts": {
-            "praise": <number of praise comments>,
-            "suggestion": <number of suggestion comments>,
-            "issue": <number of issue comments>
+
+      Your task:
+      List clear, human-readable feedback points for this code that would help a learner improve or gain confidence. Focus only on **issues or praise**, not on line numbers.
+
+      For each issue, include:
+      - Type: error, suggestion, or praise
+      - Severity: low, medium, or high
+      - Your feedback: short and precise (max 200 characters)
+
+      Also add a summary:
+      - Strengths: what the code does well (max 200 chars)
+      - Improvements: what should be fixed or added (max 200 chars)
+      - Overall Assessment: your general impression (max 200 chars)
+
+      Output format:
+        {
+          "comments": [
+            {
+              "lineRange": [<start_line>, <end_line>],
+              "type": "suggestion|error|praise",
+              "comment": "<brief comment>",
+              "severity": "low|medium|high"
+            }
+          ],
+          "summary": {
+            "strengths": "<concise summary of strengths>",
+            "improvements": "<concise summary of improvements>",
+            "overallAssessment": "<brief overall assessment>"
           }
         }
-      }
-      
-      The summary should be from the perspective of an experienced software engineer, highlighting overall patterns and providing a practical TL;DR of the review.
-      
-      Focus on being helpful, educational, and encouraging. Explain why certain practices are good or could be improved.
-      
-      IMPORTANT: Return ONLY the JSON object without any additional text or explanation.
+
+      Rules:
+      - Don’t speculate — base your feedback only on what’s present in the code.
+      - No duplicate comments.
+      - Skip irrelevant boilerplate or unnecessary praise.
+      - Comments must help the learner meaningfully.
     `;
 
     try {
-      // Define the expected JSON structure
-      const schema = `
-        type CodeReviewResponse = {
-          comments: {
-            line: number;
-            type: "suggestion" | "issue" | "praise";
-            comment: string;
-          }[];
-          summary: {
-            strengths: string;
-            improvements: string;
-            counts: {
-              praise: number;
-              suggestion: number;
-              issue: number;
+      // Step 1: Get the human-readable review
+      const rawReviewResponse = await this.llmService.generateText(step1Prompt);
+      const reviewText = rawReviewResponse.content.trim();
+
+      const step2Prompt = `
+        You are a code review line-mapper and formatter.
+        Your job is to take feedback points and check if they are valid for the original code, and make sure they are mapped to the correct line ranges.
+
+        Original code:
+        \`\`\`${exercise.language?.name || 'code'}
+        ${code}
+        \`\`\`
+
+        Feedback to map:
+        ${reviewText}
+
+        Output format:
+        {
+          "comments": [
+            {
+              "lineRange": [<start_line>, <end_line>],
+              "type": "suggestion|error|praise",
+              "comment": "<brief comment>",
+              "severity": "low|medium|high"
             }
+          ],
+          "summary": {
+            "strengths": "<concise summary of strengths>",
+            "improvements": "<concise summary of improvements>",
+            "overallAssessment": "<brief overall assessment>"
           }
-        };
-      `;
+        }
 
-      // Generate the review using LLM
-      const rawResponse = await this.llmService.generateText(prompt);
+        Rules:
+        - Carefully read the code to identify the line(s) responsible for each feedback point.
+        - If the issue spans a block, place the comment on the first line that causes the problem.
+        - Skip blank lines, comments, and braces unless the issue actually exists there.
+        - Do not guess line numbers — assign them only if the feedback clearly maps to code.
+        - Keep all fields under 200 characters.
 
-      // Try to extract JSON from the response
-      let jsonStr = rawResponse.content.trim();
+        Return ONLY valid, parseable JSON — nothing else.`;
 
-      // Find JSON object start/end if they exist
+      const jsonResponse = await this.llmService.generateText(step2Prompt);
+      console.log({ jsonResponse });
+      let jsonStr = jsonResponse.content.trim();
+
+      // Extract JSON from response
       const startIdx = jsonStr.indexOf('{');
       const endIdx = jsonStr.lastIndexOf('}');
 
@@ -481,20 +502,20 @@ export class ExercisesService {
         throw new Error('Invalid JSON response format');
       }
 
-      // Extract only the JSON object part
       jsonStr = jsonStr.substring(startIdx, endIdx + 1);
 
-      // Parse the JSON
+      // Parse and validate response
       let reviewResponse: {
-        comments: { line: number; type: string; comment: string }[];
+        comments: Array<{
+          lineRange: [number, number];
+          type: string;
+          comment: string;
+          severity: string;
+        }>;
         summary: {
           strengths: string;
           improvements: string;
-          counts: {
-            praise: number;
-            suggestion: number;
-            issue: number;
-          };
+          overallAssessment: string;
         };
       };
 
@@ -504,61 +525,68 @@ export class ExercisesService {
         throw new Error(`Failed to parse JSON: ${parseError.message}`);
       }
 
+      // Ensure all required properties exist with defaults if missing
       if (!reviewResponse.comments || !Array.isArray(reviewResponse.comments)) {
-        throw new Error('Invalid review format: comments array is missing');
+        reviewResponse.comments = [];
       }
 
       if (!reviewResponse.summary) {
-        // Create a default summary if one isn't provided
-        const counts = {
-          praise: 0,
-          suggestion: 0,
-          issue: 0,
-        };
-
-        reviewResponse.comments.forEach((comment) => {
-          if (counts[comment.type] !== undefined) {
-            counts[comment.type]++;
-          }
-        });
-
         reviewResponse.summary = {
-          strengths:
-            'The AI review identified some good practices in your code.',
-          improvements:
-            'Consider implementing the suggestions to improve your code quality.',
-          counts,
+          strengths: 'Good practices identified in your code.',
+          improvements: 'Some improvements suggested to enhance quality.',
+          overallAssessment: 'Overall assessment is positive.',
         };
       }
 
-      // Validate each review comment
-      const validatedComments = reviewResponse.comments.map((comment) => {
-        // Ensure line is a number
-        if (typeof comment.line !== 'number' || isNaN(comment.line)) {
-          comment.line = 1; // Default to line 1 if invalid
-        }
+      // Process comments - validate format and types
+      const validatedComments = reviewResponse.comments
+        .map((comment) => ({
+          lineRange:
+            Array.isArray(comment.lineRange) && comment.lineRange.length === 2
+              ? [
+                  Math.min(comment.lineRange[0], comment.lineRange[1]),
+                  Math.max(comment.lineRange[0], comment.lineRange[1]),
+                ]
+              : [1, 1],
+          type: ['suggestion', 'error', 'praise'].includes(comment.type)
+            ? comment.type
+            : comment.type === 'issue'
+            ? 'error'
+            : 'suggestion',
+          comment:
+            typeof comment.comment === 'string'
+              ? comment.comment
+              : String(comment.comment || ''),
+          severity: ['low', 'medium', 'high'].includes(comment.severity)
+            ? comment.severity
+            : comment.type === 'error'
+            ? 'high'
+            : 'medium',
+        }))
+        .sort((a, b) => a.lineRange[0] - b.lineRange[0]);
 
-        // Ensure type is valid
-        if (!['suggestion', 'issue', 'praise'].includes(comment.type)) {
-          comment.type = 'suggestion'; // Default to suggestion if invalid
-        }
-
-        // Ensure comment is a string
-        if (typeof comment.comment !== 'string') {
-          comment.comment = String(comment.comment);
-        }
-
-        return comment;
-      });
-
-      // Sort comments by line number
-      const sortedComments = validatedComments.sort((a, b) => a.line - b.line);
+      // Use summary without truncation
+      const processedSummary = {
+        strengths:
+          typeof reviewResponse.summary.strengths === 'string'
+            ? reviewResponse.summary.strengths
+            : 'Code has good aspects.',
+        improvements:
+          typeof reviewResponse.summary.improvements === 'string'
+            ? reviewResponse.summary.improvements
+            : 'Some improvements possible.',
+        overallAssessment:
+          typeof reviewResponse.summary.overallAssessment === 'string'
+            ? reviewResponse.summary.overallAssessment
+            : 'Overall assessment is positive.',
+      };
 
       return {
-        comments: sortedComments,
-        summary: reviewResponse.summary,
+        comments: validatedComments,
+        summary: processedSummary,
       };
     } catch (error) {
+      console.error(error);
       throw new BadRequestException(
         `Failed to generate code review: ${error.message}`
       );

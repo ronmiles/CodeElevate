@@ -54,19 +54,16 @@ export interface ProgressStats {
 }
 
 export interface CodeReviewComment {
-  line: number;
-  type: 'suggestion' | 'issue' | 'praise';
+  lineRange: [number, number];
+  type: 'suggestion' | 'error' | 'praise';
   comment: string;
+  severity?: 'low' | 'medium' | 'high';
 }
 
 export interface CodeReviewSummary {
   strengths: string;
   improvements: string;
-  counts: {
-    praise: number;
-    suggestion: number;
-    issue: number;
-  };
+  overallAssessment: string;
 }
 
 export interface CodeReviewResponse {
