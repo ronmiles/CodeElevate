@@ -29,6 +29,7 @@ export const ExercisePage: React.FC = () => {
   const [reviewSummary, setReviewSummary] = useState<CodeReviewSummary | null>(
     null
   );
+  const [reviewScore, setReviewScore] = useState<number | undefined>(undefined);
   const [reviewLoading, setReviewLoading] = useState(false);
   const [showReview, setShowReview] = useState(false);
   const [reviewError, setReviewError] = useState<string | undefined>(undefined);
@@ -133,6 +134,7 @@ export const ExercisePage: React.FC = () => {
       setStatusMessage('Generating code review...');
       setShowReview(true);
       setReviewError(undefined);
+      setReviewScore(undefined);
 
       const reviewResponse = await exercisesApi.reviewCode(
         exerciseId,
@@ -143,6 +145,7 @@ export const ExercisePage: React.FC = () => {
       if (reviewResponse) {
         setReviewComments(reviewResponse.comments);
         setReviewSummary(reviewResponse.summary);
+        setReviewScore(reviewResponse.score);
         setStatusMessage('Code review completed');
       } else {
         setShowReview(false);
@@ -546,6 +549,43 @@ export const ExercisePage: React.FC = () => {
             </div>
           ) : showReview ? (
             <div className="mb-4">
+              {!reviewLoading && reviewScore !== undefined && (
+                <div className="mb-4 p-4 bg-gray-800 rounded-lg border border-gray-700 flex items-center">
+                  <div className="mr-6 text-center">
+                    <div
+                      className={`text-4xl font-bold ${
+                        reviewScore >= 90
+                          ? 'text-green-400'
+                          : reviewScore >= 70
+                          ? 'text-yellow-400'
+                          : reviewScore >= 50
+                          ? 'text-orange-400'
+                          : 'text-red-400'
+                      }`}
+                    >
+                      {reviewScore}
+                    </div>
+                    <div className="text-sm text-gray-400 mt-1">SCORE</div>
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-medium text-gray-200 mb-1">
+                      Code Assessment
+                    </h3>
+                    <p className="text-gray-300">
+                      {reviewScore >= 90 &&
+                        'Excellent work! Your solution demonstrates mastery of the concepts.'}
+                      {reviewScore >= 70 &&
+                        reviewScore < 90 &&
+                        'Good job! Your solution is solid with minor improvements possible.'}
+                      {reviewScore >= 50 &&
+                        reviewScore < 70 &&
+                        'Satisfactory work with some issues to address.'}
+                      {reviewScore < 50 &&
+                        'Your solution needs significant improvements. Review the feedback carefully.'}
+                    </p>
+                  </div>
+                </div>
+              )}
               <div className="h-[450px]">
                 <CodeReview
                   code={solution}
