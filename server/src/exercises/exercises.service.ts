@@ -502,7 +502,6 @@ export class ExercisesService {
         Return ONLY valid, parseable JSON — nothing else.`;
 
       const jsonResponse = await this.llmService.generateText(step2Prompt);
-      console.log({ jsonResponse });
       let jsonStr = jsonResponse.content.trim();
 
       // Extract JSON from response
