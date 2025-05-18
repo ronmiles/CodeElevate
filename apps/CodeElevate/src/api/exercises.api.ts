@@ -72,6 +72,17 @@ export interface CodeReviewResponse {
   score: number;
 }
 
+export interface ChatMessage {
+  message: string;
+  code: string;
+  reviewComments: CodeReviewComment[];
+  reviewSummary?: CodeReviewSummary;
+}
+
+export interface ChatResponse {
+  response: string;
+}
+
 const handleApiError = (error: any) => {
   if (error.response) {
     throw new Error(error.response.data.message || 'An error occurred');
@@ -194,6 +205,23 @@ export const exercisesApi = {
           },
         }
       );
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  sendChatMessage: async (
+    exerciseId: string,
+    data: ChatMessage,
+    token: string
+  ): Promise<ChatResponse | undefined> => {
+    try {
+      const response = await api.post(`/exercises/${exerciseId}/chat`, data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       return response.data;
     } catch (error) {
       handleApiError(error);

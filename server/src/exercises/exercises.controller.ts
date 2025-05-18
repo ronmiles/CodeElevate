@@ -43,6 +43,23 @@ export class ExercisesController {
     return this.exercisesService.reviewCode(req.user.id, id, code);
   }
 
+  @Post(':id/chat')
+  chatAboutReview(
+    @Request() req,
+    @Param('id') id: string,
+    @Body('message') message: string,
+    @Body('code') code: string,
+    @Body('reviewComments') reviewComments: any[]
+  ) {
+    return this.exercisesService.chatAboutReview(
+      req.user.id,
+      id,
+      message,
+      code,
+      reviewComments
+    );
+  }
+
   @Get()
   findAll(@Request() req) {
     return this.exercisesService.getUserExercises(req.user.id);

@@ -1,22 +1,30 @@
-import React from 'react';
-import { CodeReviewComment } from '../../api/exercises.api';
+import React, { useState } from 'react';
+import { CodeReviewComment, CodeReviewSummary } from '../../api/exercises.api';
 import CodeReviewEditor from './CodeReviewEditor';
+import ReviewChatPanel from './ReviewChatPanel';
+import { FiMessageSquare } from 'react-icons/fi';
 
 interface CodeReviewProps {
+  exerciseId: string;
   code: string;
   language: string;
   comments: CodeReviewComment[];
+  summary?: CodeReviewSummary;
   isLoading?: boolean;
   error?: string;
 }
 
 export const CodeReview: React.FC<CodeReviewProps> = ({
+  exerciseId,
   code,
   language,
   comments,
+  summary,
   isLoading = false,
   error,
 }) => {
+  const [showChat, setShowChat] = useState(false);
+
   return (
     <div className="relative h-full">
       {isLoading && (
@@ -61,6 +69,29 @@ export const CodeReview: React.FC<CodeReviewProps> = ({
       {!isLoading && !error && comments.length === 0 && (
         <div className="mt-4 p-3 bg-gray-800 rounded-lg text-gray-300 text-sm">
           No review comments yet. Submit your code for AI review.
+        </div>
+      )}
+
+      {!isLoading && !error && comments.length > 0 && !showChat && (
+        <div className="fixed bottom-6 right-6">
+          <button
+            onClick={() => setShowChat(true)}
+            className="bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+          >
+            <FiMessageSquare size={20} />
+            <span>Ask about the review</span>
+          </button>
+        </div>
+      )}
+
+      {showChat && (
+        <div className="fixed bottom-6 right-6 z-50 w-96 h-[450px] shadow-xl">
+          <ReviewChatPanel
+            exerciseId={exerciseId}
+            code={code}
+            onClose={() => setShowChat(false)}
+            reviewComments={comments}
+          />
         </div>
       )}
     </div>
