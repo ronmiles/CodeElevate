@@ -441,7 +441,7 @@ export class ExercisesService {
         }
 
       Rules:
-      - Don’t speculate — base your feedback only on what’s present in the code.
+      - Don't speculate — base your feedback only on what's present in the code.
       - No duplicate comments.
       - Skip irrelevant boilerplate or unnecessary praise.
       - Comments must help the learner meaningfully.
@@ -478,8 +478,19 @@ export class ExercisesService {
             "strengths": "<concise summary of strengths>",
             "improvements": "<concise summary of improvements>",
             "overallAssessment": "<brief overall assessment>"
-          }
+          },
+          "score": <number between 0 and 100>
         }
+
+        Calculate a score from 0 to 100 based on:
+          * Correctness (does the code fulfill the exercise requirements?)
+          * Code quality (readability, organization, naming)
+          * Efficiency (algorithmic approach, performance concerns)
+          * Number and severity of errors and suggestions
+          * Extra points for creative solutions and best practices
+          * A perfect score of 100 means the code is excellent with no issues.
+          * A score below 60 indicates major issues that need to be fixed.
+          * Dont be to hard on the score, the user is still learning.
 
         Rules:
         - Carefully read the code to identify the line(s) responsible for each feedback point.
@@ -491,7 +502,6 @@ export class ExercisesService {
         Return ONLY valid, parseable JSON — nothing else.`;
 
       const jsonResponse = await this.llmService.generateText(step2Prompt);
-      console.log({ jsonResponse });
       let jsonStr = jsonResponse.content.trim();
 
       // Extract JSON from response
@@ -517,6 +527,7 @@ export class ExercisesService {
           improvements: string;
           overallAssessment: string;
         };
+        score: number;
       };
 
       try {
@@ -536,6 +547,15 @@ export class ExercisesService {
           improvements: 'Some improvements suggested to enhance quality.',
           overallAssessment: 'Overall assessment is positive.',
         };
+      }
+
+      // Ensure score is valid, default to 70 if missing or invalid
+      if (
+        typeof reviewResponse.score !== 'number' ||
+        reviewResponse.score < 0 ||
+        reviewResponse.score > 100
+      ) {
+        reviewResponse.score = 70;
       }
 
       // Process comments - validate format and types
@@ -584,6 +604,7 @@ export class ExercisesService {
       return {
         comments: validatedComments,
         summary: processedSummary,
+        score: Math.round(reviewResponse.score),
       };
     } catch (error) {
       console.error(error);

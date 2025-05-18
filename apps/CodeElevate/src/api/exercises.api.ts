@@ -69,6 +69,7 @@ export interface CodeReviewSummary {
 export interface CodeReviewResponse {
   comments: CodeReviewComment[];
   summary: CodeReviewSummary;
+  score: number;
 }
 
 const handleApiError = (error: any) => {
