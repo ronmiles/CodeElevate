@@ -283,34 +283,6 @@ export const CodeReview: React.FC<CodeReviewProps> = ({
         </div>
       )}
 
-      {!isLoading &&
-        !error &&
-        (comments.length > 0 || logicBlocks.length > 0) && (
-          <div className="mb-4 p-3 bg-gray-800 border border-gray-700 rounded-lg text-xs">
-            <div className="flex flex-wrap gap-x-4 gap-y-2">
-              <div className="flex items-center">
-                <div className="w-3 h-3 mr-1.5 bg-red-500 rounded-full"></div>
-                <span>Error</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 mr-1.5 bg-blue-500 rounded-full"></div>
-                <span>Suggestion</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 mr-1.5 bg-green-500 rounded-full"></div>
-                <span>Good Practice</span>
-              </div>
-              <div className="flex items-center">
-                <div className="w-3 h-3 mr-1.5 bg-indigo-500 opacity-60 rounded-full"></div>
-                <span>Logic Block</span>
-              </div>
-              <div className="ml-auto text-gray-400">
-                <span>Hover over icons in the gutter for details</span>
-              </div>
-            </div>
-          </div>
-        )}
-
       <div className="h-full border border-gray-700 rounded-lg overflow-hidden">
         <Editor
           height="100%"
