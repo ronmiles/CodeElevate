@@ -396,12 +396,10 @@ export class ExercisesService {
       throw new BadRequestException('Code content is required');
     }
 
-    // Create a prompt for the LLM to review the code
+    // Create a prompt for the LLM to review the code - simplified
     const prompt = `
       You are an expert code reviewer for a coding education platform.
-      You need to review this code submission for the exercise: "${
-        exercise.title
-      }".
+      Review this code submission for the exercise: "${exercise.title}".
 
       Exercise description: ${exercise.description}
 
@@ -410,74 +408,47 @@ export class ExercisesService {
       ${code}
       \`\`\`
 
-      Analyze the code for:
-      1. Correctness: Does it meet the requirements?
-      2. Logic: Are the algorithms and approaches appropriate?
-      3. Style and best practices: Does it follow good coding practices?
+      Analyze for correctness, logic, and best practices.
 
-      YOUR RESPONSE MUST BE VALID JSON WITH NO ADDITIONAL TEXT BEFORE OR AFTER THE JSON OBJECT.
-
-      The response should be ONLY a JSON object with this structure and no additional text outside the JSON:
+      Return ONLY a JSON object with this structure:
       {
         "logicBlocks": [
           {
-            "description": "<brief description of what this logical block does>",
+            "description": "<brief description>",
             "lineRange": [<start_line>, <end_line>],
-            "feedback": "<detailed feedback about this logical section of code>",
-            "type": "strength" | "improvement" | "critical",
-            "severity": "low" | "medium" | "high"
+            "feedback": "<concise feedback>",
+            "type": "strength|improvement|critical",
+            "severity": "low|medium|high"
           }
         ],
         "specificIssues": [
           {
             "line": <line number>,
-            "type": "suggestion" | "error" | "praise",
-            "comment": "<your detailed comment>",
-            "severity": "low" | "medium" | "high"
+            "type": "suggestion|error|praise",
+            "comment": "<brief comment>",
+            "severity": "low|medium|high"
           }
         ],
         "summary": {
-          "strengths": "<a concise paragraph summarizing the code's strengths>",
-          "improvements": "<a concise paragraph summarizing suggested improvements>",
-          "overallAssessment": "<an overall assessment of the solution quality>"
+          "strengths": "<concise summary of strengths>",
+          "improvements": "<concise summary of improvements>",
+          "overallAssessment": "<brief overall assessment>"
         }
       }
 
-      IMPORTANT GUIDELINES:
-      - Use "logicBlocks" for multi-line code patterns and algorithmic concepts that span several lines:
-        * "strength" type: For well-implemented algorithms or design patterns
-        * "improvement" type: For working but suboptimal implementations that could be enhanced
-        * "critical" type: For fundamentally flawed logic that needs major restructuring
+      IMPORTANT CHARACTER LIMITS:
+      - description: maximum 50 characters - do not exceed this limit
+      - feedback: maximum 200 characters - do not exceed this limit
+      - comment: maximum 200 characters - do not exceed this limit
+      - strengths/improvements/overallAssessment: maximum 200 characters each - do not exceed these limits
 
-      - Use "specificIssues" for individual line-level comments:
-        * "praise" type: For excellent code practices, clever solutions, or optimal implementations
-        * "suggestion" type: For style improvements, best practices, minor optimizations (use lightbulb icon)
-        * "error" type: For bugs, syntax errors, incorrect implementations (use error icon)
-
-      - Apply appropriate severity for each issue:
-        * "high": Critical bugs or major issues that must be fixed immediately
-        * "medium": Important improvements that should be addressed
-        * "low": Minor enhancements or style suggestions
-
-      - Do not duplicate feedback between logicBlocks and specificIssues
-      - Be precise about line numbers in specificIssues
-      - In logicBlocks, provide exact start and end line numbers
-      - Never use "suggestion" type for actual errors or bugs - use "error" type instead
-      - Keep feedback actionable and educational - explain why each issue matters
-      - Include code examples in your feedback when appropriate
-
-      The summary should be from the perspective of an experienced software engineer, highlighting overall patterns and providing a practical TL;DR of the review.
-
-      Focus on being helpful, educational, and encouraging. Explain why certain practices are good or could be improved.
-
-      IMPORTANT: Return ONLY the JSON object without any additional text or explanation.
-    `;
+      DO NOT write content that exceeds these limits. Rather than using ellipsis (...) to truncate, craft complete thoughts within the character limits.`;
 
     try {
       const rawResponse = await this.llmService.generateText(prompt);
-
       let jsonStr = rawResponse.content.trim();
 
+      // Extract JSON from response
       const startIdx = jsonStr.indexOf('{');
       const endIdx = jsonStr.lastIndexOf('}');
 
@@ -487,20 +458,21 @@ export class ExercisesService {
 
       jsonStr = jsonStr.substring(startIdx, endIdx + 1);
 
+      // Parse and validate response
       let reviewResponse: {
-        logicBlocks: {
+        logicBlocks: Array<{
           description: string;
           lineRange: [number, number];
           feedback: string;
           type: string;
           severity: string;
-        }[];
-        specificIssues: {
+        }>;
+        specificIssues: Array<{
           line: number;
           type: string;
           comment: string;
           severity: string;
-        }[];
+        }>;
         summary: {
           strengths: string;
           improvements: string;
@@ -514,6 +486,7 @@ export class ExercisesService {
         throw new Error(`Failed to parse JSON: ${parseError.message}`);
       }
 
+      // Ensure all required properties exist with defaults if missing
       if (
         !reviewResponse.logicBlocks ||
         !Array.isArray(reviewResponse.logicBlocks)
@@ -529,140 +502,88 @@ export class ExercisesService {
       }
 
       if (!reviewResponse.summary) {
-        // Create a default summary if one isn't provided
         reviewResponse.summary = {
-          strengths:
-            'The AI review identified some good practices in your code.',
-          improvements:
-            'Consider implementing the suggestions to improve your code quality.',
-          overallAssessment:
-            'The overall assessment of the solution quality is positive.',
+          strengths: 'Good practices identified in your code.',
+          improvements: 'Some improvements suggested to enhance quality.',
+          overallAssessment: 'Overall assessment is positive.',
         };
       }
 
-      // Validate each specific issue
-      const validatedIssues = reviewResponse.specificIssues.map((issue) => {
-        // Ensure line is a number
-        if (typeof issue.line !== 'number' || isNaN(issue.line)) {
-          issue.line = 1; // Default to line 1 if invalid
-        }
+      // Process specific issues - simplified validation without truncation
+      const validatedIssues = reviewResponse.specificIssues
+        .map((issue) => ({
+          line:
+            typeof issue.line === 'number' && !isNaN(issue.line)
+              ? issue.line
+              : 1,
+          type: ['suggestion', 'error', 'praise'].includes(issue.type)
+            ? issue.type
+            : issue.type === 'issue'
+            ? 'error'
+            : 'suggestion',
+          comment:
+            typeof issue.comment === 'string'
+              ? issue.comment
+              : String(issue.comment || ''),
+          severity: ['low', 'medium', 'high'].includes(issue.severity)
+            ? issue.severity
+            : issue.type === 'error'
+            ? 'high'
+            : 'medium',
+        }))
+        .sort((a, b) => a.line - b.line);
 
-        // Ensure type is valid
-        if (!['suggestion', 'error', 'praise'].includes(issue.type)) {
-          // If it was "issue" in the response, convert it to "error" for consistency
-          issue.type = issue.type === 'issue' ? 'error' : 'suggestion';
-        }
+      // Process logic blocks - simplified validation without truncation
+      const validatedLogicBlocks = reviewResponse.logicBlocks
+        .map((block) => ({
+          description:
+            typeof block.description === 'string'
+              ? block.description
+              : String(block.description || ''),
+          lineRange:
+            Array.isArray(block.lineRange) && block.lineRange.length === 2
+              ? [
+                  Math.min(block.lineRange[0], block.lineRange[1]),
+                  Math.max(block.lineRange[0], block.lineRange[1]),
+                ]
+              : [1, 1],
+          feedback:
+            typeof block.feedback === 'string'
+              ? block.feedback
+              : String(block.feedback || ''),
+          type: ['strength', 'improvement', 'critical'].includes(block.type)
+            ? block.type
+            : block.type === 'issue'
+            ? 'critical'
+            : 'improvement',
+          severity: ['low', 'medium', 'high'].includes(block.severity)
+            ? block.severity
+            : block.type === 'critical'
+            ? 'high'
+            : 'medium',
+        }))
+        .sort((a, b) => a.lineRange[0] - b.lineRange[0]);
 
-        // Ensure severity is valid and appropriate for the type
-        if (
-          !issue.severity ||
-          !['low', 'medium', 'high'].includes(issue.severity)
-        ) {
-          issue.severity =
-            issue.type === 'error'
-              ? 'high'
-              : issue.type === 'suggestion'
-              ? 'medium'
-              : 'low';
-        } else if (issue.type === 'praise' && issue.severity === 'high') {
-          // Praise should never be high severity
-          issue.severity = 'medium';
-        } else if (issue.type === 'error' && issue.severity === 'low') {
-          // Errors should never be low severity
-          issue.severity = 'medium';
-        }
-
-        // Ensure comment is a string and has appropriate length
-        if (typeof issue.comment !== 'string') {
-          issue.comment = String(issue.comment);
-        }
-
-        // Make sure comments are not too long
-        if (issue.comment.length > 500) {
-          issue.comment = issue.comment.substring(0, 497) + '...';
-        }
-
-        return issue;
-      });
-
-      // Sort comments by line number
-      const sortedIssues = validatedIssues.sort((a, b) => a.line - b.line);
-
-      // Validate each logic block
-      const validatedLogicBlocks = reviewResponse.logicBlocks.map((block) => {
-        // Ensure description is a string
-        if (typeof block.description !== 'string') {
-          block.description = String(block.description);
-        }
-
-        // Make sure descriptions are not too long
-        if (block.description.length > 100) {
-          block.description = block.description.substring(0, 97) + '...';
-        }
-
-        // Ensure lineRange is a valid array of two numbers
-        if (!Array.isArray(block.lineRange) || block.lineRange.length !== 2) {
-          block.lineRange = [1, 1];
-        } else {
-          block.lineRange = [
-            typeof block.lineRange[0] === 'number' ? block.lineRange[0] : 1,
-            typeof block.lineRange[1] === 'number' ? block.lineRange[1] : 1,
-          ];
-
-          // Make sure start line <= end line
-          if (block.lineRange[0] > block.lineRange[1]) {
-            const temp = block.lineRange[0];
-            block.lineRange[0] = block.lineRange[1];
-            block.lineRange[1] = temp;
-          }
-        }
-
-        // Ensure feedback is a string
-        if (typeof block.feedback !== 'string') {
-          block.feedback = String(block.feedback);
-        }
-
-        // Make sure feedback is not too long
-        if (block.feedback.length > 800) {
-          block.feedback = block.feedback.substring(0, 797) + '...';
-        }
-
-        // Ensure type is valid and convert old "issue" type to "critical"
-        if (!['strength', 'improvement', 'critical'].includes(block.type)) {
-          block.type = block.type === 'issue' ? 'critical' : 'improvement';
-        }
-
-        // Ensure severity is valid and appropriate for the type
-        if (
-          !block.severity ||
-          !['low', 'medium', 'high'].includes(block.severity)
-        ) {
-          block.severity =
-            block.type === 'critical'
-              ? 'high'
-              : block.type === 'improvement'
-              ? 'medium'
-              : 'low';
-        } else if (block.type === 'strength' && block.severity === 'high') {
-          // Strengths default to medium unless explicitly set lower
-          block.severity = 'medium';
-        } else if (block.type === 'critical' && block.severity === 'low') {
-          // Critical blocks should never be low severity
-          block.severity = 'medium';
-        }
-
-        return block;
-      });
-
-      // Sort logic blocks by starting line
-      const sortedLogicBlocks = validatedLogicBlocks.sort(
-        (a, b) => a.lineRange[0] - b.lineRange[0]
-      );
+      // Use summary without truncation
+      const processedSummary = {
+        strengths:
+          typeof reviewResponse.summary.strengths === 'string'
+            ? reviewResponse.summary.strengths
+            : 'Code has good aspects.',
+        improvements:
+          typeof reviewResponse.summary.improvements === 'string'
+            ? reviewResponse.summary.improvements
+            : 'Some improvements possible.',
+        overallAssessment:
+          typeof reviewResponse.summary.overallAssessment === 'string'
+            ? reviewResponse.summary.overallAssessment
+            : 'Overall assessment is positive.',
+      };
 
       return {
-        logicBlocks: sortedLogicBlocks,
-        specificIssues: sortedIssues,
-        summary: reviewResponse.summary,
+        logicBlocks: validatedLogicBlocks,
+        specificIssues: validatedIssues,
+        summary: processedSummary,
       };
     } catch (error) {
       throw new BadRequestException(
