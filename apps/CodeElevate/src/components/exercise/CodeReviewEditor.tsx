@@ -1,20 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import Editor from '@monaco-editor/react';
-import { CodeReviewComment, LogicBlock } from '../../api/exercises.api';
+import { CodeReviewComment } from '../../api/exercises.api';
 import { codeReviewStyles } from './codeReviewStyles';
 
 interface CodeReviewEditorProps {
   code: string;
   language: string;
   comments: CodeReviewComment[];
-  logicBlocks?: LogicBlock[];
 }
 
 export const CodeReviewEditor: React.FC<CodeReviewEditorProps> = ({
   code,
   language,
   comments,
-  logicBlocks = [],
 }) => {
   const [decorations, setDecorations] = useState<any[]>([]);
   const [editorInstance, setEditorInstance] = useState<any>(null);
@@ -45,139 +43,124 @@ export const CodeReviewEditor: React.FC<CodeReviewEditorProps> = ({
             }
           };
 
-          newDecorations.push({
-            range: new monacoInstance.Range(
-              comment.line,
-              1,
-              comment.line,
-              1000
-            ),
-            options: {
-              isWholeLine: true,
-              className: `review-comment-line review-comment-${comment.type}`,
-              glyphMarginClassName: `review-glyph-${comment.type}${
-                comment.severity === 'high' ? '-high' : ''
-              }`,
-              glyphMarginHoverMessage: {
-                value: `**${
-                  comment.type === 'error'
-                    ? 'ERROR'
-                    : comment.type === 'suggestion'
-                    ? 'SUGGESTION'
-                    : 'GOOD PRACTICE'
-                }${comment.severity === 'high' ? ' (CRITICAL)' : ''}**: ${
-                  comment.comment
-                }${
-                  comment.type === 'error' && comment.severity === 'high'
-                    ? '\n\n⚠️ **This issue requires immediate attention**'
-                    : comment.type === 'error'
-                    ? '\n\n⚠️ This should be fixed before submission'
-                    : comment.type === 'suggestion'
-                    ? '\n\n💡 Consider implementing this improvement'
-                    : '\n\n✅ Keep up this good practice'
-                }`,
-              },
-              inlineClassName: `review-inline-${comment.type}`,
-              overviewRuler: {
-                color: getColor(comment.type),
-                position: monacoInstance.editor.OverviewRulerLane.Right,
-              },
-              minimap: {
-                color: getColor(comment.type),
-                position: monacoInstance.editor.MinimapPosition.Inline,
-              },
-              after: {
-                content: `  // ${
-                  comment.type === 'error'
-                    ? '❌ '
-                    : comment.type === 'suggestion'
-                    ? '💡 '
-                    : '✅ '
-                }${
-                  comment.comment.length > 75
-                    ? comment.comment.substring(0, 72) + '...'
-                    : comment.comment
-                }`,
-                inlineClassName: `review-inline-comment review-inline-${comment.type}`,
-              },
-              glyphMargin: true,
-              linesDecorationsClassName: `line-decoration-${comment.type}`,
-              marginClassName: `margin-decoration-${comment.type}`,
-              // Make error borders thicker based on severity
-              lineErrorClassName:
-                comment.type === 'error'
-                  ? `line-error-severity-${comment.severity || 'medium'}`
-                  : '',
-            },
-          });
-        });
-      }
-
-      // Add decorations for logic blocks
-      if (logicBlocks && logicBlocks.length > 0) {
-        logicBlocks.forEach((block) => {
-          const startLine = block.lineRange[0];
-          const endLine = block.lineRange[1];
-
-          // Determine the border thickness based on severity
-          const borderWidth =
-            block.type === 'critical'
-              ? '3px'
-              : block.severity === 'high'
-              ? '3px'
-              : block.severity === 'medium'
-              ? '2px'
-              : '1px';
-
-          // Create the class name with severity
-          const className = `review-block-${block.type}${
-            block.severity ? `-${block.severity}` : ''
-          }`;
-
-          // Create hover message with priority indication
-          const hoverMessage = {
-            value: `**Logic Block${
-              block.type === 'critical' ? ' (CRITICAL)' : ''
-            }: ${block.description}**\n\n${block.feedback}${
-              block.severity === 'high'
-                ? '\n\n**High Priority**'
-                : block.severity === 'medium'
-                ? '\n\n**Medium Priority**'
-                : ''
-            }`,
+          // Get icon for comment type
+          const getIcon = (type: string): string => {
+            switch (type) {
+              case 'suggestion':
+                return '💡';
+              case 'error':
+                return '❌';
+              case 'praise':
+                return '🌟';
+              default:
+                return '📝';
+            }
           };
 
-          // Create the decoration for the block
-          newDecorations.push({
-            range: new monacoInstance.Range(startLine, 1, endLine, 1000),
-            options: {
-              isWholeLine: true,
-              className,
-              hoverMessage,
-              borderWidth,
-              borderStyle: 'solid',
-              borderRadius: '4px',
-            },
-          });
+          // Format comment with severity prefix if it exists
+          const formatComment = (comment: CodeReviewComment): string => {
+            const icon = getIcon(comment.type);
+            if (comment.severity) {
+              const severityText = comment.severity.toUpperCase();
+              return `${icon} [${severityText}] ${comment.comment}`;
+            }
+            return `${icon} ${comment.comment}`;
+          };
 
-          // Add a block indicator at the start of the logic block
-          newDecorations.push({
-            range: new monacoInstance.Range(startLine, 1, startLine, 1),
-            options: {
-              isWholeLine: false,
-              glyphMarginClassName: `review-block-glyph-${block.type}${
-                block.severity === 'high' ? '-high' : ''
-              }`,
-              glyphMarginHoverMessage: {
-                value: `**Logic Block${
-                  block.type === 'critical' ? ' (CRITICAL)' : ''
-                } (Lines ${startLine}-${endLine}):** ${block.description}\n\n${
-                  block.feedback
-                }`,
+          // Get start and end line from lineRange
+          const startLine = comment.lineRange[0];
+          const endLine = comment.lineRange[1];
+
+          // Create decoration for single-line comment
+          if (startLine === endLine) {
+            newDecorations.push({
+              range: new monacoInstance.Range(startLine, 1, startLine, 1000),
+              options: {
+                isWholeLine: true,
+                className: `review-comment-line review-comment-${comment.type}`,
+                glyphMarginClassName: `review-glyph-${comment.type}`,
+                glyphMarginHoverMessage: {
+                  value: `**${
+                    comment.type === 'error'
+                      ? 'ERROR'
+                      : comment.type === 'suggestion'
+                      ? 'SUGGESTION'
+                      : 'GOOD PRACTICE'
+                  }${
+                    comment.severity
+                      ? ` (${comment.severity.toUpperCase()})`
+                      : ''
+                  }**: ${comment.comment}`,
+                },
+                inlineClassName: `review-inline-${comment.type}`,
+                overviewRuler: {
+                  color: getColor(comment.type),
+                  position: monacoInstance.editor.OverviewRulerLane.Right,
+                },
+                minimap: {
+                  color: getColor(comment.type),
+                  position: monacoInstance.editor.MinimapPosition.Inline,
+                },
+                after: {
+                  content: `  // ${formatComment(comment)}`,
+                  inlineClassName: `review-inline-comment review-inline-${comment.type}`,
+                },
+                glyphMargin: true,
+                linesDecorationsClassName: `line-decoration-${comment.type}`,
+                marginClassName: `margin-decoration-${comment.type}`,
               },
-              glyphMargin: true,
-            },
-          });
+            });
+          }
+          // Create decoration for multi-line comments
+          else {
+            // Add decoration to the entire block
+            newDecorations.push({
+              range: new monacoInstance.Range(startLine, 1, endLine, 1000),
+              options: {
+                isWholeLine: true,
+                className: `review-comment-block review-comment-${comment.type}`,
+                hoverMessage: {
+                  value: `**${
+                    comment.type === 'error'
+                      ? 'ERROR'
+                      : comment.type === 'suggestion'
+                      ? 'SUGGESTION'
+                      : 'GOOD PRACTICE'
+                  }${
+                    comment.severity
+                      ? ` (${comment.severity.toUpperCase()})`
+                      : ''
+                  }**: ${comment.comment}`,
+                },
+                borderWidth: '1px',
+                borderStyle: 'solid',
+                borderRadius: '4px',
+              },
+            });
+
+            // Add the comment indicator at the start of the block
+            newDecorations.push({
+              range: new monacoInstance.Range(startLine, 1, startLine, 1000),
+              options: {
+                isWholeLine: true,
+                glyphMarginClassName: `review-glyph-${comment.type}`,
+                glyphMarginHoverMessage: {
+                  value: `**${
+                    comment.type === 'error'
+                      ? 'ERROR'
+                      : comment.type === 'suggestion'
+                      ? 'SUGGESTION'
+                      : 'GOOD PRACTICE'
+                  } (Lines ${startLine}-${endLine})**: ${comment.comment}`,
+                },
+                glyphMargin: true,
+                after: {
+                  content: `  // ${formatComment(comment)}`,
+                  inlineClassName: `review-inline-comment review-inline-${comment.type}`,
+                },
+              },
+            });
+          }
         });
       }
 
@@ -192,14 +175,14 @@ export const CodeReviewEditor: React.FC<CodeReviewEditorProps> = ({
         }
       };
     }
-  }, [editorInstance, monacoInstance, comments, logicBlocks]);
+  }, [editorInstance, monacoInstance, comments]);
 
   // Monaco editor setup
   const handleEditorMount = (editor: any, monaco: any) => {
     setEditorInstance(editor);
     setMonacoInstance(monaco);
 
-    // Add CSS styles for comments and logic blocks
+    // Add CSS styles for comments
     const styleElement = document.createElement('style');
     styleElement.textContent = codeReviewStyles;
     document.head.appendChild(styleElement);

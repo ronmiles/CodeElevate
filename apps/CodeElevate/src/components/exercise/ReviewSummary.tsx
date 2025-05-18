@@ -1,42 +1,21 @@
 import React from 'react';
-import {
-  CodeReviewSummary,
-  LogicBlock,
-  CodeReviewComment,
-} from '../../api/exercises.api';
+import { CodeReviewSummary, CodeReviewComment } from '../../api/exercises.api';
 
 interface ReviewSummaryProps {
   summary: CodeReviewSummary;
-  logicBlocks?: LogicBlock[];
-  specificIssues?: CodeReviewComment[];
+  comments?: CodeReviewComment[];
 }
 
 export const ReviewSummary: React.FC<ReviewSummaryProps> = ({
   summary,
-  logicBlocks = [],
-  specificIssues = [],
+  comments = [],
 }) => {
-  // Count by types from logic blocks
-  const logicBlockCounts = {
-    strength: logicBlocks.filter((block) => block.type === 'strength').length,
-    improvement: logicBlocks.filter((block) => block.type === 'improvement')
+  // Count by types from comments
+  const commentCounts = {
+    strength: comments.filter((comment) => comment.type === 'praise').length,
+    improvement: comments.filter((comment) => comment.type === 'suggestion')
       .length,
-    issue: logicBlocks.filter((block) => block.type === 'critical').length,
-  };
-
-  // Count by types from specific issues
-  const specificCounts = {
-    strength: specificIssues.filter((issue) => issue.type === 'praise').length,
-    improvement: specificIssues.filter((issue) => issue.type === 'suggestion')
-      .length,
-    issue: specificIssues.filter((issue) => issue.type === 'error').length,
-  };
-
-  // Combined counts
-  const totalCounts = {
-    strength: logicBlockCounts.strength + specificCounts.strength,
-    improvement: logicBlockCounts.improvement + specificCounts.improvement,
-    issue: logicBlockCounts.issue + specificCounts.issue,
+    issue: comments.filter((comment) => comment.type === 'error').length,
   };
 
   return (
@@ -65,19 +44,19 @@ export const ReviewSummary: React.FC<ReviewSummaryProps> = ({
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="flex flex-col items-center bg-gray-900 p-4 rounded-lg border border-gray-700 hover:border-green-500 transition-all duration-200 shadow-sm">
             <div className="text-3xl font-bold text-green-500 mb-1">
-              {totalCounts.strength}
+              {commentCounts.strength}
             </div>
             <div className="text-sm text-gray-300">Strengths</div>
           </div>
           <div className="flex flex-col items-center bg-gray-900 p-4 rounded-lg border border-gray-700 hover:border-blue-500 transition-all duration-200 shadow-sm">
             <div className="text-3xl font-bold text-blue-500 mb-1">
-              {totalCounts.improvement}
+              {commentCounts.improvement}
             </div>
             <div className="text-sm text-gray-300">Improvements</div>
           </div>
           <div className="flex flex-col items-center bg-gray-900 p-4 rounded-lg border border-gray-700 hover:border-red-500 transition-all duration-200 shadow-sm">
             <div className="text-3xl font-bold text-red-500 mb-1">
-              {totalCounts.issue}
+              {commentCounts.issue}
             </div>
             <div className="text-sm text-gray-300">Issues</div>
           </div>

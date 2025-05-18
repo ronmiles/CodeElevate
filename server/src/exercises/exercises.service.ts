@@ -396,57 +396,103 @@ export class ExercisesService {
       throw new BadRequestException('Code content is required');
     }
 
-    // Create a prompt for the LLM to review the code - simplified
-    const prompt = `
-      You are an expert code reviewer for a coding education platform.
-      Review this code submission for the exercise: "${exercise.title}".
+    // Step 1: Generate a human-like code review with bullet points
+    const step1Prompt = `
+      Your job is to review the following code submission and identify any issues or notable qualities.
 
-      Exercise description: ${exercise.description}
+      Exercise title: "${exercise.title}"
 
-      Code submitted:
+      Exercise description:
+      ${exercise.description}
+
+      Submitted code:
       \`\`\`${exercise.language?.name || 'code'}
       ${code}
       \`\`\`
 
-      Analyze for correctness, logic, and best practices.
+      Your task:
+      List clear, human-readable feedback points for this code that would help a learner improve or gain confidence. Focus only on **issues or praise**, not on line numbers.
 
-      Return ONLY a JSON object with this structure:
-      {
-        "logicBlocks": [
-          {
-            "description": "<brief description>",
-            "lineRange": [<start_line>, <end_line>],
-            "feedback": "<concise feedback>",
-            "type": "strength|improvement|critical",
-            "severity": "low|medium|high"
+      For each issue, include:
+      - Type: error, suggestion, or praise
+      - Severity: low, medium, or high
+      - Your feedback: short and precise (max 200 characters)
+
+      Also add a summary:
+      - Strengths: what the code does well (max 200 chars)
+      - Improvements: what should be fixed or added (max 200 chars)
+      - Overall Assessment: your general impression (max 200 chars)
+
+      Output format:
+        {
+          "comments": [
+            {
+              "lineRange": [<start_line>, <end_line>],
+              "type": "suggestion|error|praise",
+              "comment": "<brief comment>",
+              "severity": "low|medium|high"
+            }
+          ],
+          "summary": {
+            "strengths": "<concise summary of strengths>",
+            "improvements": "<concise summary of improvements>",
+            "overallAssessment": "<brief overall assessment>"
           }
-        ],
-        "specificIssues": [
-          {
-            "line": <line number>,
-            "type": "suggestion|error|praise",
-            "comment": "<brief comment>",
-            "severity": "low|medium|high"
-          }
-        ],
-        "summary": {
-          "strengths": "<concise summary of strengths>",
-          "improvements": "<concise summary of improvements>",
-          "overallAssessment": "<brief overall assessment>"
         }
-      }
 
-      IMPORTANT CHARACTER LIMITS:
-      - description: maximum 50 characters - do not exceed this limit
-      - feedback: maximum 200 characters - do not exceed this limit
-      - comment: maximum 200 characters - do not exceed this limit
-      - strengths/improvements/overallAssessment: maximum 200 characters each - do not exceed these limits
-
-      DO NOT write content that exceeds these limits. Rather than using ellipsis (...) to truncate, craft complete thoughts within the character limits.`;
+      Rules:
+      - Don’t speculate — base your feedback only on what’s present in the code.
+      - No duplicate comments.
+      - Skip irrelevant boilerplate or unnecessary praise.
+      - Comments must help the learner meaningfully.
+    `;
 
     try {
-      const rawResponse = await this.llmService.generateText(prompt);
-      let jsonStr = rawResponse.content.trim();
+      // Step 1: Get the human-readable review
+      const rawReviewResponse = await this.llmService.generateText(step1Prompt);
+      const reviewText = rawReviewResponse.content.trim();
+
+      const step2Prompt = `
+        You are a code review line-mapper and formatter.
+        Your job is to take feedback points and check if they are valid for the original code, and make sure they are mapped to the correct line ranges.
+
+        Original code:
+        \`\`\`${exercise.language?.name || 'code'}
+        ${code}
+        \`\`\`
+
+        Feedback to map:
+        ${reviewText}
+
+        Output format:
+        {
+          "comments": [
+            {
+              "lineRange": [<start_line>, <end_line>],
+              "type": "suggestion|error|praise",
+              "comment": "<brief comment>",
+              "severity": "low|medium|high"
+            }
+          ],
+          "summary": {
+            "strengths": "<concise summary of strengths>",
+            "improvements": "<concise summary of improvements>",
+            "overallAssessment": "<brief overall assessment>"
+          }
+        }
+
+        Rules:
+        - Carefully read the code to identify the line(s) responsible for each feedback point.
+        - If the issue spans a block, place the comment on the first line that causes the problem.
+        - Skip blank lines, comments, and braces unless the issue actually exists there.
+        - Do not guess line numbers — assign them only if the feedback clearly maps to code.
+        - Keep all fields under 200 characters.
+
+        Return ONLY valid, parseable JSON — nothing else.`;
+
+      const jsonResponse = await this.llmService.generateText(step2Prompt);
+      console.log({ jsonResponse });
+      let jsonStr = jsonResponse.content.trim();
 
       // Extract JSON from response
       const startIdx = jsonStr.indexOf('{');
@@ -460,15 +506,8 @@ export class ExercisesService {
 
       // Parse and validate response
       let reviewResponse: {
-        logicBlocks: Array<{
-          description: string;
+        comments: Array<{
           lineRange: [number, number];
-          feedback: string;
-          type: string;
-          severity: string;
-        }>;
-        specificIssues: Array<{
-          line: number;
           type: string;
           comment: string;
           severity: string;
@@ -487,18 +526,8 @@ export class ExercisesService {
       }
 
       // Ensure all required properties exist with defaults if missing
-      if (
-        !reviewResponse.logicBlocks ||
-        !Array.isArray(reviewResponse.logicBlocks)
-      ) {
-        reviewResponse.logicBlocks = [];
-      }
-
-      if (
-        !reviewResponse.specificIssues ||
-        !Array.isArray(reviewResponse.specificIssues)
-      ) {
-        reviewResponse.specificIssues = [];
+      if (!reviewResponse.comments || !Array.isArray(reviewResponse.comments)) {
+        reviewResponse.comments = [];
       }
 
       if (!reviewResponse.summary) {
@@ -509,56 +538,28 @@ export class ExercisesService {
         };
       }
 
-      // Process specific issues - simplified validation without truncation
-      const validatedIssues = reviewResponse.specificIssues
-        .map((issue) => ({
-          line:
-            typeof issue.line === 'number' && !isNaN(issue.line)
-              ? issue.line
-              : 1,
-          type: ['suggestion', 'error', 'praise'].includes(issue.type)
-            ? issue.type
-            : issue.type === 'issue'
+      // Process comments - validate format and types
+      const validatedComments = reviewResponse.comments
+        .map((comment) => ({
+          lineRange:
+            Array.isArray(comment.lineRange) && comment.lineRange.length === 2
+              ? [
+                  Math.min(comment.lineRange[0], comment.lineRange[1]),
+                  Math.max(comment.lineRange[0], comment.lineRange[1]),
+                ]
+              : [1, 1],
+          type: ['suggestion', 'error', 'praise'].includes(comment.type)
+            ? comment.type
+            : comment.type === 'issue'
             ? 'error'
             : 'suggestion',
           comment:
-            typeof issue.comment === 'string'
-              ? issue.comment
-              : String(issue.comment || ''),
-          severity: ['low', 'medium', 'high'].includes(issue.severity)
-            ? issue.severity
-            : issue.type === 'error'
-            ? 'high'
-            : 'medium',
-        }))
-        .sort((a, b) => a.line - b.line);
-
-      // Process logic blocks - simplified validation without truncation
-      const validatedLogicBlocks = reviewResponse.logicBlocks
-        .map((block) => ({
-          description:
-            typeof block.description === 'string'
-              ? block.description
-              : String(block.description || ''),
-          lineRange:
-            Array.isArray(block.lineRange) && block.lineRange.length === 2
-              ? [
-                  Math.min(block.lineRange[0], block.lineRange[1]),
-                  Math.max(block.lineRange[0], block.lineRange[1]),
-                ]
-              : [1, 1],
-          feedback:
-            typeof block.feedback === 'string'
-              ? block.feedback
-              : String(block.feedback || ''),
-          type: ['strength', 'improvement', 'critical'].includes(block.type)
-            ? block.type
-            : block.type === 'issue'
-            ? 'critical'
-            : 'improvement',
-          severity: ['low', 'medium', 'high'].includes(block.severity)
-            ? block.severity
-            : block.type === 'critical'
+            typeof comment.comment === 'string'
+              ? comment.comment
+              : String(comment.comment || ''),
+          severity: ['low', 'medium', 'high'].includes(comment.severity)
+            ? comment.severity
+            : comment.type === 'error'
             ? 'high'
             : 'medium',
         }))
@@ -581,11 +582,11 @@ export class ExercisesService {
       };
 
       return {
-        logicBlocks: validatedLogicBlocks,
-        specificIssues: validatedIssues,
+        comments: validatedComments,
         summary: processedSummary,
       };
     } catch (error) {
+      console.error(error);
       throw new BadRequestException(
         `Failed to generate code review: ${error.message}`
       );

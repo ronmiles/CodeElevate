@@ -1,12 +1,11 @@
 import React from 'react';
-import { CodeReviewComment, LogicBlock } from '../../api/exercises.api';
+import { CodeReviewComment } from '../../api/exercises.api';
 import CodeReviewEditor from './CodeReviewEditor';
 
 interface CodeReviewProps {
   code: string;
   language: string;
   comments: CodeReviewComment[];
-  logicBlocks?: LogicBlock[];
   isLoading?: boolean;
   error?: string;
 }
@@ -15,7 +14,6 @@ export const CodeReview: React.FC<CodeReviewProps> = ({
   code,
   language,
   comments,
-  logicBlocks = [],
   isLoading = false,
   error,
 }) => {
@@ -32,12 +30,7 @@ export const CodeReview: React.FC<CodeReviewProps> = ({
         </div>
       )}
 
-      <CodeReviewEditor
-        code={code}
-        language={language}
-        comments={comments}
-        logicBlocks={logicBlocks}
-      />
+      <CodeReviewEditor code={code} language={language} comments={comments} />
 
       {error && (
         <div className="mt-4 p-4 bg-red-900/30 border border-red-800 rounded-lg text-red-200 text-sm">
@@ -65,14 +58,11 @@ export const CodeReview: React.FC<CodeReviewProps> = ({
         </div>
       )}
 
-      {!isLoading &&
-        !error &&
-        comments.length === 0 &&
-        logicBlocks.length === 0 && (
-          <div className="mt-4 p-3 bg-gray-800 rounded-lg text-gray-300 text-sm">
-            No review comments yet. Submit your code for AI review.
-          </div>
-        )}
+      {!isLoading && !error && comments.length === 0 && (
+        <div className="mt-4 p-3 bg-gray-800 rounded-lg text-gray-300 text-sm">
+          No review comments yet. Submit your code for AI review.
+        </div>
+      )}
     </div>
   );
 };

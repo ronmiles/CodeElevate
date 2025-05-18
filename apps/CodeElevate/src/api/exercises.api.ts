@@ -54,17 +54,9 @@ export interface ProgressStats {
 }
 
 export interface CodeReviewComment {
-  line: number;
+  lineRange: [number, number];
   type: 'suggestion' | 'error' | 'praise';
   comment: string;
-  severity?: 'low' | 'medium' | 'high';
-}
-
-export interface LogicBlock {
-  description: string;
-  lineRange: [number, number];
-  feedback: string;
-  type: 'strength' | 'improvement' | 'critical';
   severity?: 'low' | 'medium' | 'high';
 }
 
@@ -75,8 +67,7 @@ export interface CodeReviewSummary {
 }
 
 export interface CodeReviewResponse {
-  logicBlocks: LogicBlock[];
-  specificIssues: CodeReviewComment[];
+  comments: CodeReviewComment[];
   summary: CodeReviewSummary;
 }
 
