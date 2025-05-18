@@ -504,7 +504,7 @@ export const ExercisePage: React.FC = () => {
                   </p>
                 </div>
               </div>
-              <div className="h-96 border border-gray-700 rounded-lg overflow-hidden">
+              <div className="h-[450px] border border-gray-700 rounded-lg overflow-hidden">
                 <Editor
                   height="100%"
                   language={getMonacoLanguage(exercise.language.name)}
@@ -549,7 +549,7 @@ export const ExercisePage: React.FC = () => {
             </div>
           ) : showReview ? (
             <div className="mb-4">
-              <div className="h-96">
+              <div className="h-[450px]">
                 <CodeReview
                   code={solution}
                   language={getMonacoLanguage(exercise.language.name)}
@@ -565,11 +565,13 @@ export const ExercisePage: React.FC = () => {
                 !reviewLoading &&
                 !reviewError &&
                 reviewSummary && (
-                  <ReviewSummary
-                    summary={reviewSummary}
-                    logicBlocks={logicBlocks}
-                    specificIssues={reviewComments}
-                  />
+                  <div className="mt-10 border-t border-gray-700">
+                    <ReviewSummary
+                      summary={reviewSummary}
+                      logicBlocks={logicBlocks}
+                      specificIssues={reviewComments}
+                    />
+                  </div>
                 )}
             </div>
           ) : (
@@ -615,7 +617,7 @@ export const ExercisePage: React.FC = () => {
                 </div>
               </div>
 
-              <div className="h-96 border border-gray-700 rounded-lg overflow-hidden">
+              <div className="h-[450px] border border-gray-700 rounded-lg overflow-hidden">
                 <Editor
                   height="100%"
                   language={getMonacoLanguage(exercise.language.name)}
