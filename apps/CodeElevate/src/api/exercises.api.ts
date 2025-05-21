@@ -2,7 +2,7 @@ import axios from 'axios';
 
 const api = axios.create({
   baseURL: 'http://localhost:3333/api',
-  timeout: 10000,
+  timeout: 20000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -70,6 +70,17 @@ export interface CodeReviewResponse {
   comments: CodeReviewComment[];
   summary: CodeReviewSummary;
   score: number;
+}
+
+export interface ChatMessage {
+  message: string;
+  code: string;
+  reviewComments: CodeReviewComment[];
+  reviewSummary?: CodeReviewSummary;
+}
+
+export interface ChatResponse {
+  response: string;
 }
 
 const handleApiError = (error: any) => {
@@ -194,6 +205,23 @@ export const exercisesApi = {
           },
         }
       );
+      return response.data;
+    } catch (error) {
+      handleApiError(error);
+    }
+  },
+
+  sendChatMessage: async (
+    exerciseId: string,
+    data: ChatMessage,
+    token: string
+  ): Promise<ChatResponse | undefined> => {
+    try {
+      const response = await api.post(`/exercises/${exerciseId}/chat`, data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       return response.data;
     } catch (error) {
       handleApiError(error);

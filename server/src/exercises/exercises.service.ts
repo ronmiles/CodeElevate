@@ -613,4 +613,86 @@ export class ExercisesService {
       );
     }
   }
+
+  async chatAboutReview(
+    userId: string,
+    exerciseId: string,
+    message: string,
+    code: string,
+    reviewComments: any[]
+  ) {
+    const exercise = await this.getExercise(userId, exerciseId);
+
+    if (!exercise) {
+      throw new NotFoundException(`Exercise not found`);
+    }
+
+    if (!message || message.trim() === '') {
+      throw new BadRequestException('Message is required');
+    }
+
+    const commentsSummary = reviewComments
+      .map(
+        (comment) =>
+          `- Line ${comment.lineRange[0]}-${
+            comment.lineRange[1]
+          }: ${comment.type.toUpperCase()} (${comment.severity}): ${
+            comment.comment
+          }`
+      )
+      .join('\n');
+
+    // Create prompt for the chat assistant
+    const chatPrompt = `
+      You are a helpful coding assistant specifically addressing questions about a code review.
+      
+      Exercise: "${exercise.title}"
+      
+      The user has submitted code in ${
+        exercise.language?.name || 'a programming language'
+      } and received a review.
+      
+      Submitted code:
+      \`\`\`${exercise.language?.name || 'code'}
+      ${code}
+      \`\`\`
+      
+      Review comments:
+      ${commentsSummary}
+      
+      User's question: "${message}"
+      
+      Your task:
+      - Answer the user's specific question about the code or the review
+      - Address technical concepts mentioned in the review
+      - If the user asks about fixing issues, provide helpful guidance
+      - Focus ONLY on the code and review - do not discuss unrelated topics
+      - Be concise but complete with your explanations
+      - If asked about code modifications, provide specific examples
+      - If unsure about details not mentioned in the review, say so rather than speculating
+      
+      IMPORTANT: DO NOT include any thinking process or reasoning in your response. DO NOT use <think> tags or similar. 
+      Provide ONLY the final answer directly addressing the user's question.
+      
+      Keep your response professional, supportive, educational, and to-the-point.
+    `;
+
+    try {
+      const response = await this.llmService.generateText(chatPrompt);
+      let cleanResponse = response.content.trim();
+
+      // Remove <think> tags and their content
+      cleanResponse = cleanResponse.replace(/<think>[\s\S]*?<\/think>/g, '');
+
+      // Clean up any other potential thinking indicators
+      cleanResponse = cleanResponse.replace(
+        /^(Thinking:|I need to|Let me think|Let's analyze|My thought process:).*$/gm,
+        ''
+      );
+
+      return { response: cleanResponse.trim() };
+    } catch (error) {
+      throw new Error(`Failed to generate chat response: ${error.message}`);
+    }
+  }
 }

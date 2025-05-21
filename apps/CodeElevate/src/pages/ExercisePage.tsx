@@ -588,9 +588,11 @@ export const ExercisePage: React.FC = () => {
               )}
               <div className="h-[450px]">
                 <CodeReview
+                  exerciseId={exerciseId || ''}
                   code={solution}
                   language={getMonacoLanguage(exercise.language.name)}
                   comments={reviewComments}
+                  summary={reviewSummary || undefined}
                   isLoading={reviewLoading}
                   error={reviewError}
                 />
