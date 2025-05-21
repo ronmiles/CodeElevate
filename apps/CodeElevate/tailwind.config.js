@@ -15,16 +15,18 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        background: '#0f1117',
-        'secondary-background': '#1a1e2a',
         'accent-blue': '#2C74FF',
-        primary: '#8957e5',
         'primary-dark': '#7046b8',
         secondary: '#364FC7',
         'secondary-dark': '#2E44AD',
-        text: '#e6e6e6',
-        'text-secondary': '#a0a0a0',
-        error: '#e53e3e',
+        primary: 'var(--primary)',
+        'primary-hover': 'var(--primary-hover)',
+        background: 'var(--background)',
+        'secondary-background': 'var(--secondary-background)',
+        text: 'var(--text)',
+        'text-secondary': 'var(--text-secondary)',
+        border: 'var(--border)',
+        error: 'var(--error)',
       },
       borderRadius: {
         xl: '0.85rem',
