@@ -47,7 +47,7 @@ export function App() {
                 }
               />
               <Route
-                path="/goal/:goalId"
+                path="/goal/:goalId/checkpoint/:checkpointId"
                 element={
                   <PrivateRoute>
                     <LearningGoalPage />

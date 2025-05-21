@@ -38,7 +38,10 @@ const scrollbarStyles = `
 `;
 
 export const LearningGoalPage: React.FC = () => {
-  const { goalId } = useParams<{ goalId: string }>();
+  const { goalId, checkpointId } = useParams<{
+    goalId: string;
+    checkpointId?: string;
+  }>();
   const { token } = useAuth();
   const navigate = useNavigate();
   const [toast, setToast] = useState<{
@@ -58,24 +61,6 @@ export const LearningGoalPage: React.FC = () => {
   const [selectedExercise, setSelectedExercise] = useState<Exercise | null>(
     null
   );
-
-  // Add logging when component mounts
-  useEffect(() => {
-    console.log('LearningGoalPage mounted');
-    console.log('URL Parameters:', { goalId });
-    console.log('Auth Token:', token);
-  }, [goalId, token]);
-
-  // Prevent automatic redirects when token expires
-  useEffect(() => {
-    if (!token) {
-      console.warn(
-        'No auth token available, but preventing automatic redirect'
-      );
-      // We're not redirecting automatically to allow the user to see the current page
-      // They'll need to log in again if they want to interact with protected features
-    }
-  }, [token]);
 
   const {
     data: goal,
@@ -109,14 +94,35 @@ export const LearningGoalPage: React.FC = () => {
       }
     },
     enabled: !!goalId && !!token,
-    retry: false, // Don't retry on 404
+    retry: false,
   });
 
-  const {
-    data: exercises,
-    isLoading: isLoadingExercises,
-    error: exercisesError,
-  } = useQuery({
+  useEffect(() => {
+    if (goal && checkpointId) {
+      const found = goal.roadmap?.checkpoints.find(
+        (cp) => cp.id === checkpointId
+      );
+
+      if (found) {
+        setSelectedCheckpoint({
+          ...found,
+          createdAt: (found as any).createdAt || new Date().toISOString(),
+          updatedAt: (found as any).updatedAt || new Date().toISOString(),
+        } as Checkpoint);
+      }
+    }
+  }, [goal, checkpointId]);
+
+  useEffect(() => {
+    if (goal && !checkpointId && goal.roadmap?.checkpoints.length) {
+      navigate(
+        `/goal/${goal.id}/checkpoint/${goal.roadmap.checkpoints[0].id}`,
+        { replace: true }
+      );
+    }
+  }, [goal, checkpointId, navigate]);
+
+  const { data: exercises, isLoading: isLoadingExercises } = useQuery({
     queryKey: ['exercises', selectedCheckpoint?.id],
     queryFn: async () => {
       try {
@@ -165,24 +171,6 @@ export const LearningGoalPage: React.FC = () => {
     },
   });
 
-  const updateCheckpointStatusMutation = useMutation({
-    mutationFn: ({
-      checkpointId,
-      status,
-    }: {
-      checkpointId: string;
-      status: string;
-    }) => goalsApi.updateCheckpointStatus(checkpointId, status, token!),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['goal', goalId] });
-      setToast({
-        open: true,
-        message: 'Checkpoint status has been updated',
-        severity: 'success',
-      });
-    },
-  });
-
   const handleCheckpointClick = async (checkpoint: {
     id: string;
     title: string;
@@ -191,15 +179,13 @@ export const LearningGoalPage: React.FC = () => {
     order: number;
   }) => {
     try {
-      console.log('Selected checkpoint:', checkpoint);
       const fullCheckpoint: Checkpoint = {
         ...checkpoint,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
       setSelectedCheckpoint(fullCheckpoint);
-
-      // Check if exercises exist before generating
+      navigate(`/goal/${goalId}/checkpoint/${checkpoint.id}`);
       const existingExercises = await exercisesApi.getCheckpointExercises(
         checkpoint.id,
         token!
@@ -208,29 +194,12 @@ export const LearningGoalPage: React.FC = () => {
         generateExerciseMutation.mutate();
       }
     } catch (error) {
-      console.error('Error handling checkpoint click:', error);
       setToast({
         open: true,
         message: 'Error loading exercises. Please try again.',
         severity: 'error',
       });
-      // Don't navigate away or reset the selection on error
     }
-  };
-
-  const handleStatusUpdate = (checkpoint: Checkpoint, newStatus: string) => {
-    updateCheckpointStatusMutation.mutate({
-      checkpointId: checkpoint.id,
-      status: newStatus,
-    });
-  };
-
-  const getProgressPercentage = () => {
-    if (!goal?.roadmap?.checkpoints) return 0;
-    const completed = goal.roadmap.checkpoints.filter(
-      (cp) => cp.status === 'COMPLETED'
-    ).length;
-    return (completed / goal.roadmap.checkpoints.length) * 100;
   };
 
   const scroll = (direction: 'left' | 'right') => {
@@ -297,20 +266,16 @@ export const LearningGoalPage: React.FC = () => {
       <div className="min-h-screen bg-background flex flex-col">
         <Navbar />
         <div className="flex flex-1 overflow-hidden">
-          {/* Sidebar with checkpoints */}
           <div
             className="w-64 bg-secondary-background rounded-lg m-3 mr-0 flex-shrink-0 flex flex-col"
             style={{
-              height:
-                'calc(100vh - 64px)' /* Adjust based on your navbar height */,
+              height: 'calc(100vh - 64px)',
             }}
           >
-            {/* Fixed sidebar header */}
             <div className="p-4 border-b border-border">
               <h2 className="text-lg font-semibold text-text">Learning Path</h2>
             </div>
 
-            {/* Scrollable sidebar content */}
             <div
               className="flex-1 p-4 pt-2 overflow-y-auto"
               style={{
@@ -354,12 +319,11 @@ export const LearningGoalPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Main content area */}
           <div
             className="flex-1 p-6 m-3 ml-3 rounded-lg overflow-y-auto"
             style={{
               height: 'calc(100vh - 64px)',
-            }} /* Adjust based on your navbar height */
+            }}
           >
             {selectedCheckpoint ? (
               <>
@@ -377,7 +341,6 @@ export const LearningGoalPage: React.FC = () => {
                     Exercises
                   </h2>
 
-                  {/* Scroll buttons */}
                   <button
                     onClick={() => scroll('left')}
                     className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-secondary-background rounded-full shadow-lg"
@@ -391,13 +354,11 @@ export const LearningGoalPage: React.FC = () => {
                     →
                   </button>
 
-                  {/* Updated Exercise carousel */}
                   <div
                     ref={containerRef}
                     className="overflow-x-auto flex space-x-4 pb-4 px-8 scrollbar-hide"
                   >
                     {isLoadingExercises ? (
-                      // Loading skeletons
                       [...Array(4)].map((_, i) => (
                         <div
                           key={i}
@@ -434,8 +395,7 @@ export const LearningGoalPage: React.FC = () => {
                             whileTap={{ scale: 0.98 }}
                             className="flex-shrink-0 w-72 bg-secondary-background rounded-lg p-4 cursor-pointer bg-green-50"
                             onClick={() => {
-                              setSelectedExercise(exercise);
-                              setModalOpen(true);
+                              navigate(`/exercise/${exercise.id}`);
                             }}
                           >
                             <h3 className="font-semibold text-text mb-2">
@@ -455,7 +415,6 @@ export const LearningGoalPage: React.FC = () => {
                           </motion.div>
                         ))}
 
-                        {/* Generate More Card */}
                         <motion.div
                           whileHover={{
                             scale: generateExerciseMutation.isPending
@@ -528,7 +487,6 @@ export const LearningGoalPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Exercise Modal */}
         <ExerciseProvider>
           <ExerciseDetailsOverlay
             open={modalOpen}
@@ -537,7 +495,6 @@ export const LearningGoalPage: React.FC = () => {
           />
         </ExerciseProvider>
 
-        {/* Toast */}
         <Snackbar
           open={toast.open}
           autoHideDuration={3000}
