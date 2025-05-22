@@ -25,6 +25,7 @@ import { getMonacoLanguage } from '../components/exercise/LanguageUtils';
 import CodeReview from '../components/exercise/CodeReview';
 import ReviewSummary from '../components/exercise/ReviewSummary';
 import Hints from '../components/exercise/Hints';
+import GradeDisplay from '../components/exercise/GradeDisplay';
 
 export const ExercisePage: React.FC = () => {
   const { exerciseId } = useParams<{ exerciseId: string }>();
@@ -59,12 +60,19 @@ export const ExercisePage: React.FC = () => {
         const data = await exercisesApi.getExercise(exerciseId, token);
         setExercise(data);
 
-        if (
-          data.progress &&
-          data.progress.length > 0 &&
-          data.progress[0].code
-        ) {
-          setSolution(data.progress[0].code);
+        if (data.progress && data.progress.length > 0) {
+          // Set existing solution code if available
+          if (data.progress[0].code) {
+            setSolution(data.progress[0].code);
+          }
+
+          // Set existing grade if available
+          if (
+            data.progress[0].grade !== undefined &&
+            data.progress[0].grade !== null
+          ) {
+            setReviewScore(data.progress[0].grade);
+          }
         } else if (data.initialCode) {
           setSolution(data.initialCode);
         }
@@ -188,6 +196,16 @@ export const ExercisePage: React.FC = () => {
         setReviewSummary(reviewResponse.summary);
         setReviewScore(reviewResponse.score);
         setStatusMessage('Code review completed');
+
+        await exercisesApi.updateProgress(
+          exerciseId,
+          {
+            status: 'IN_PROGRESS',
+            code: solution,
+            grade: reviewResponse.score,
+          },
+          token
+        );
       } else {
         setShowReview(false);
         setStatusMessage('Failed to generate review. Please try again later.');
@@ -246,6 +264,10 @@ export const ExercisePage: React.FC = () => {
     <div className="container mx-auto max-w-6xl py-8 px-4 bg-background">
       <div className="flex flex-col gap-8">
         <ExerciseHeader exercise={exercise} />
+
+        {reviewScore !== undefined && !showSolution && !showReview && (
+          <GradeDisplay grade={reviewScore} />
+        )}
 
         <SolutionContainer
           showSolution={showSolution}
