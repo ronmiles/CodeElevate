@@ -9,7 +9,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
 import { motion } from 'framer-motion';
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Exercise, exercisesApi } from '../api/exercises.api';
 import { goalsApi, LearningGoal } from '../api/goals.api';
 import { Checkpoint } from '../api/roadmap.api';
@@ -44,6 +44,7 @@ export const LearningGoalPage: React.FC = () => {
   }>();
   const { token } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [toast, setToast] = useState<{
     open: boolean;
     message: string;
@@ -66,6 +67,7 @@ export const LearningGoalPage: React.FC = () => {
     data: goal,
     isLoading: isLoadingGoal,
     error: goalError,
+    refetch: refetchGoal,
   } = useQuery<LearningGoal>({
     queryKey: ['goal', goalId],
     queryFn: async () => {
@@ -96,6 +98,14 @@ export const LearningGoalPage: React.FC = () => {
     enabled: !!goalId && !!token,
     retry: false,
   });
+
+  // Add effect to refetch goal data when navigating back from exercise page
+  useEffect(() => {
+    // Refetch goal data when returning to this page from an exercise
+    if (goalId && token) {
+      refetchGoal();
+    }
+  }, [refetchGoal, goalId, token, location.pathname]);
 
   useEffect(() => {
     if (goal && checkpointId) {
@@ -152,10 +162,14 @@ export const LearningGoalPage: React.FC = () => {
         selectedCheckpoint!.id,
         token!
       ),
-    onSuccess: () => {
+    onSuccess: async () => {
       queryClient.invalidateQueries({
         queryKey: ['exercises', selectedCheckpoint?.id],
       });
+
+      // Refetch goal to show updated checkpoint status from server
+      refetchGoal();
+
       setToast({
         open: true,
         message: 'New exercise has been created for this checkpoint',
