@@ -677,19 +677,6 @@ export const ExercisePage: React.FC = () => {
                     lineDecorationsWidth: 10,
                     lineNumbersMinChars: 3,
                   }}
-                  beforeMount={(monaco) => {
-                    console.log(
-                      'Monaco editor languages:',
-                      monaco.languages.getLanguages().map((l) => l.id)
-                    );
-                  }}
-                  onMount={(editor, monaco) => {
-                    console.log(
-                      `Mounted editor with language: ${getMonacoLanguage(
-                        exercise.language.name
-                      )}`
-                    );
-                  }}
                 />
               </div>
             </div>
