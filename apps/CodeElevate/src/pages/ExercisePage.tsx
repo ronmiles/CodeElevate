@@ -386,24 +386,83 @@ export const ExercisePage: React.FC = () => {
                   Hide Solution
                 </button>
               ) : showReview ? (
-                <button
-                  onClick={() => setShowReview(false)}
-                  className="px-4 py-2 bg-gray-700 text-text rounded-lg hover:bg-gray-600 text-sm flex items-center shadow-sm transition-all duration-200"
-                >
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-4 w-4 mr-1"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowReview(false)}
+                    className="px-4 py-2 bg-gray-700 text-text rounded-lg hover:bg-gray-600 text-sm flex items-center shadow-sm transition-all duration-200"
                   >
-                    <path
-                      fillRule="evenodd"
-                      d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  Back to Editor
-                </button>
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      className="h-4 w-4 mr-1"
+                      viewBox="0 0 20 20"
+                      fill="currentColor"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    Back to Editor
+                  </button>
+                  <button
+                    onClick={handleSubmit}
+                    disabled={
+                      submitStatus === 'loading' ||
+                      reviewLoading ||
+                      !solution.trim()
+                    }
+                    className={`px-4 py-2 bg-primary text-white rounded-lg shadow-sm ${
+                      submitStatus === 'loading' ||
+                      reviewLoading ||
+                      !solution.trim()
+                        ? 'opacity-60 cursor-not-allowed'
+                        : 'hover:bg-primary-dark hover:shadow transition-all duration-200'
+                    } flex items-center`}
+                  >
+                    {submitStatus === 'loading' ? (
+                      <>
+                        <svg
+                          className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        Submitting...
+                      </>
+                    ) : (
+                      <>
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          className="h-4 w-4 mr-1"
+                          viewBox="0 0 20 20"
+                          fill="currentColor"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                        Submit Solution
+                      </>
+                    )}
+                  </button>
+                </div>
               ) : (
                 <>
                   <button
@@ -424,29 +483,6 @@ export const ExercisePage: React.FC = () => {
                       />
                     </svg>
                     View Example Solution
-                  </button>
-                  <button
-                    onClick={handleCodeReview}
-                    disabled={!solution.trim() || reviewLoading}
-                    className={`px-4 py-2 bg-purple-900 text-purple-100 rounded-lg text-sm flex items-center shadow-sm transition-all duration-200 ${
-                      !solution.trim() || reviewLoading
-                        ? 'opacity-60 cursor-not-allowed'
-                        : 'hover:bg-purple-800'
-                    }`}
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 mr-1"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M18 13V5a2 2 0 00-2-2H4a2 2 0 00-2 2v8a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2zM5 7a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 100 2h3a1 1 0 100-2H6z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    Get AI Review
                   </button>
                   <button
                     onClick={() => setShowHints((prev) => !prev)}
@@ -694,55 +730,27 @@ export const ExercisePage: React.FC = () => {
 
             {!showSolution && !showReview && (
               <button
-                onClick={handleSubmit}
-                disabled={submitStatus === 'loading' || !solution.trim()}
-                className={`px-4 py-2 bg-primary text-white rounded-lg shadow-sm ${
-                  submitStatus === 'loading' || !solution.trim()
+                onClick={handleCodeReview}
+                disabled={!solution.trim() || reviewLoading}
+                className={`px-4 py-2 bg-purple-900 text-purple-100 rounded-lg text-sm flex items-center shadow-sm transition-all duration-200 ${
+                  !solution.trim() || reviewLoading
                     ? 'opacity-60 cursor-not-allowed'
-                    : 'hover:bg-primary-dark hover:shadow transition-all duration-200'
-                } flex items-center`}
+                    : 'hover:bg-purple-800'
+                }`}
               >
-                {submitStatus === 'loading' ? (
-                  <>
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Submitting...
-                  </>
-                ) : (
-                  <>
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      className="h-4 w-4 mr-1"
-                      viewBox="0 0 20 20"
-                      fill="currentColor"
-                    >
-                      <path
-                        fillRule="evenodd"
-                        d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                        clipRule="evenodd"
-                      />
-                    </svg>
-                    Submit Solution
-                  </>
-                )}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4 mr-1"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M18 13V5a2 2 0 00-2-2H4a2 2 0 00-2 2v8a2 2 0 002 2h3l3 3 3-3h3a2 2 0 002-2zM5 7a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1zm1 3a1 1 0 100 2h3a1 1 0 100-2H6z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                Get AI Review
               </button>
             )}
           </div>
