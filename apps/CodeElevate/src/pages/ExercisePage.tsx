@@ -326,7 +326,11 @@ export const ExercisePage: React.FC = () => {
           </button>
 
           <div className="flex justify-between items-center">
-            <ExerciseHeader exercise={exercise} />
+            <ExerciseHeader
+              exercise={exercise}
+              position={currentExerciseIndex}
+              total={checkpointExercises.length}
+            />
           </div>
         </div>
 
