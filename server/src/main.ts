@@ -14,12 +14,7 @@ async function bootstrap() {
   });
 
   // Enable CORS with specific configuration
-  app.enableCors({
-    origin: ['http://localhost:4200', 'http://127.0.0.1:4200'], // Allow both localhost variations
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    allowedHeaders: ['Content-Type', 'Authorization'],
-    credentials: true,
-  });
+  app.enableCors();
 
   // Global prefix for all routes
   app.setGlobalPrefix('api');
@@ -28,12 +23,12 @@ async function bootstrap() {
   app.use((req, res, next) => {
     logger.log(`Incoming Request: [${req.method}] ${req.url}`);
     logger.debug('Request Headers:', req.headers);
-    
+
     // Safely check and log request body
     if (req.body && Object.keys(req.body).length > 0) {
       logger.debug('Request Body:', req.body);
     }
-    
+
     next();
   });
 

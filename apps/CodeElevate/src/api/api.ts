@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create an axios instance with default config
 export const api = axios.create({
-  baseURL: 'http://localhost:3333/api',
+  baseURL: 'http://localhost:3000/api',
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -69,4 +69,4 @@ export function handleApiError(error: any): never {
     throw new Error(message);
   }
   throw error;
-} 
+}

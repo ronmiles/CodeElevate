@@ -1,0 +1,97 @@
+version: '3.8'
+
+services:
+  # PostgreSQL service
+  postgres:
+    image: postgres:15-alpine
+    container_name: codeelevate-postgres
+    restart: unless-stopped
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=codeelevate
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - codeelevate-network
+
+  # PgAdmin (optional, for database management)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: codeelevate-pgadmin
+    restart: unless-stopped
+    ports:
+      - '8080:80'
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=admin@codeelevate.com
+      - PGADMIN_DEFAULT_PASSWORD=admin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - codeelevate-network
+
+  # Backend service
+  server:
+    build:
+      context: .
+      dockerfile: server/Dockerfile
+      platforms:
+        - linux/amd64
+    container_name: codeelevate-server
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/codeelevate?schema=public
+      - JWT_SECRET=codeelevate_secret_key_change_in_production
+      - JWT_EXPIRES_IN=1h
+      - JWT_REFRESH_SECRET=codeelevate_refresh_secret_key_change_in_production
+      - JWT_REFRESH_EXPIRES_IN=7d
+      - CLIENT_URL=http://localhost:80
+      # AI API credentials (replace with your actual values)
+      - OPENAI_API_KEY=your_openai_api_key
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - codeelevate-network
+    mem_limit: 2g
+
+  # Frontend service
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/CodeElevate/Dockerfile
+      args:
+        VITE_API_URL: 'http://localhost/api'
+        VITE_SOCKET_URL: 'http://localhost'
+      platforms:
+        - linux/amd64
+    container_name: codeelevate-frontend
+    restart: unless-stopped
+    ports:
+      - '80:80'
+    depends_on:
+      - server
+    networks:
+      - codeelevate-network
+    mem_limit: 2g
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  codeelevate-network:
+    driver: bridge
