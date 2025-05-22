@@ -59,8 +59,13 @@ export const ExercisePage: React.FC = () => {
         const data = await exercisesApi.getExercise(exerciseId, token);
         setExercise(data);
 
-        // Initialize with initial code if available
-        if (data.initialCode) {
+        if (
+          data.progress &&
+          data.progress.length > 0 &&
+          data.progress[0].code
+        ) {
+          setSolution(data.progress[0].code);
+        } else if (data.initialCode) {
           setSolution(data.initialCode);
         }
       } catch (err) {
