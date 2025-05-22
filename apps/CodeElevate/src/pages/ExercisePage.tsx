@@ -11,6 +11,7 @@ import Editor from '@monaco-editor/react';
 import CodeReview from '../components/exercise/CodeReview';
 import ReviewSummary from '../components/exercise/ReviewSummary';
 import Hints from '../components/exercise/Hints';
+import { Lightbulb, EyeOff } from 'lucide-react';
 
 export const ExercisePage: React.FC = () => {
   const { exerciseId } = useParams<{ exerciseId: string }>();
@@ -34,6 +35,7 @@ export const ExercisePage: React.FC = () => {
   const [reviewLoading, setReviewLoading] = useState(false);
   const [showReview, setShowReview] = useState(false);
   const [reviewError, setReviewError] = useState<string | undefined>(undefined);
+  const [showHints, setShowHints] = useState(false);
 
   useEffect(() => {
     const fetchExercise = async () => {
@@ -309,10 +311,6 @@ export const ExercisePage: React.FC = () => {
           </p>
         </div>
 
-        {exercise.hints && exercise.hints.length > 0 && (
-          <Hints hints={exercise.hints} />
-        )}
-
         <div className="bg-secondary-background p-6 rounded-lg shadow-sm border border-gray-700">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-semibold text-text flex items-center">
@@ -450,10 +448,34 @@ export const ExercisePage: React.FC = () => {
                     </svg>
                     Get AI Review
                   </button>
+                  <button
+                    onClick={() => setShowHints((prev) => !prev)}
+                    className={`px-4 py-2 bg-yellow-900 text-yellow-100 rounded-lg text-sm flex items-center shadow-sm transition-all duration-200 ${
+                      showHints ? 'hover:bg-yellow-800' : 'hover:bg-yellow-800'
+                    }`}
+                  >
+                    {showHints ? (
+                      <>
+                        <EyeOff className="h-4 w-4 mr-1" />
+                        Hide Hints
+                      </>
+                    ) : (
+                      <>
+                        <Lightbulb className="h-4 w-4 mr-1" />
+                        Show Hints
+                      </>
+                    )}
+                  </button>
                 </>
               )}
             </div>
           </div>
+
+          {showHints && exercise.hints && exercise.hints.length > 0 && (
+            <div className="mb-4">
+              <Hints hints={exercise.hints} />
+            </div>
+          )}
 
           {showSolution ? (
             <div className="mb-4">
