@@ -271,6 +271,33 @@ export class ExercisesService {
       throw new NotFoundException('Exercise not found');
     }
 
+    // Prepare data with explicit typing
+    const updateData = {
+      status: updateProgressDto.status || undefined,
+      code: updateProgressDto.code,
+      attempts: { increment: 1 },
+      completedAt: updateProgressDto.status === 'COMPLETED' ? new Date() : null,
+    } as any; // Use type assertion for now
+
+    // Add grade if provided
+    if (updateProgressDto.grade !== undefined) {
+      updateData.grade = updateProgressDto.grade;
+    }
+
+    const createData = {
+      userId,
+      exerciseId,
+      status: updateProgressDto.status || 'IN_PROGRESS',
+      code: updateProgressDto.code,
+      attempts: 1,
+      completedAt: updateProgressDto.status === 'COMPLETED' ? new Date() : null,
+    } as any; // Use type assertion for now
+
+    // Add grade if provided
+    if (updateProgressDto.grade !== undefined) {
+      createData.grade = updateProgressDto.grade;
+    }
+
     // Create or update progress
     return this.prisma.progress.upsert({
       where: {
@@ -279,20 +306,8 @@ export class ExercisesService {
           exerciseId,
         },
       },
-      update: {
-        ...updateProgressDto,
-        attempts: { increment: 1 },
-        completedAt:
-          updateProgressDto.status === 'COMPLETED' ? new Date() : null,
-      },
-      create: {
-        userId,
-        exerciseId,
-        ...updateProgressDto,
-        attempts: 1,
-        completedAt:
-          updateProgressDto.status === 'COMPLETED' ? new Date() : null,
-      },
+      update: updateData,
+      create: createData,
     });
   }
 

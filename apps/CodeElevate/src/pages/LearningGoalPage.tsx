@@ -404,13 +404,31 @@ export const LearningGoalPage: React.FC = () => {
                             <p className="text-sm text-text-secondary mb-4 line-clamp-2">
                               {exercise.description}
                             </p>
-                            <div className="flex space-x-2">
-                              <span className="px-2 py-1 bg-background rounded text-xs text-text-secondary">
-                                {exercise.difficulty}
-                              </span>
-                              <span className="px-2 py-1 bg-background rounded text-xs text-text-secondary">
-                                {exercise.language.name}
-                              </span>
+                            <div className="flex justify-between items-center mb-2">
+                              <div className="flex space-x-2">
+                                <span className="px-2 py-1 bg-background rounded text-xs text-text-secondary">
+                                  {exercise.difficulty}
+                                </span>
+                                <span className="px-2 py-1 bg-background rounded text-xs text-text-secondary">
+                                  {exercise.language.name}
+                                </span>
+                              </div>
+                              {exercise.progress &&
+                                exercise.progress[0]?.grade && (
+                                  <div
+                                    className={`px-2 py-1 rounded text-sm font-semibold ${
+                                      exercise.progress[0].grade >= 90
+                                        ? 'bg-green-100 text-green-800'
+                                        : exercise.progress[0].grade >= 70
+                                        ? 'bg-blue-100 text-blue-800'
+                                        : exercise.progress[0].grade >= 50
+                                        ? 'bg-yellow-100 text-yellow-800'
+                                        : 'bg-red-100 text-red-800'
+                                    }`}
+                                  >
+                                    {exercise.progress[0].grade}
+                                  </div>
+                                )}
                             </div>
                           </motion.div>
                         ))}

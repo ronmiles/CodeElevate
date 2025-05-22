@@ -103,12 +103,33 @@ export const ExercisePage: React.FC = () => {
       setSubmitStatus('loading');
       setStatusMessage('Submitting your solution...');
 
-      // Update the progress with the code solution
+      // If there's no review yet, perform a code review to get a grade
+      if (reviewScore === undefined) {
+        try {
+          setStatusMessage('Generating code review for grading...');
+          const reviewResponse = await exercisesApi.reviewCode(
+            exerciseId,
+            solution,
+            token
+          );
+          if (reviewResponse) {
+            setReviewComments(reviewResponse.comments);
+            setReviewSummary(reviewResponse.summary);
+            setReviewScore(reviewResponse.score);
+          }
+        } catch (err) {
+          console.error('Error generating review for grading:', err);
+          // Continue with submission even if review fails
+        }
+      }
+
+      // Update the progress with the code solution and grade
       await exercisesApi.updateProgress(
         exerciseId,
         {
           status: 'IN_PROGRESS',
           code: solution,
+          grade: reviewScore,
         },
         token
       );
