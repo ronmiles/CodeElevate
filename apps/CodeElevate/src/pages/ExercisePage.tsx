@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import {
   exercisesApi,
   Exercise,
@@ -29,6 +29,7 @@ import Hints from '../components/exercise/Hints';
 export const ExercisePage: React.FC = () => {
   const { exerciseId } = useParams<{ exerciseId: string }>();
   const { token } = useAuth();
+  const navigate = useNavigate();
   const [exercise, setExercise] = useState<Exercise | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -109,6 +110,11 @@ export const ExercisePage: React.FC = () => {
 
       setSubmitStatus('success');
       setStatusMessage('Solution submitted successfully');
+
+      navigate(
+        // @ts-expect-error it checkpointId & not checkpoint.id
+        `/goal/${exercise.goal.id}/checkpoint/${exercise.checkpointId}`
+      );
     } catch (err) {
       setSubmitStatus('error');
       setStatusMessage(

@@ -11,7 +11,6 @@ import {
   DifficultyLevel,
 } from './dto/exercises.dto';
 import { LLMService } from '../llm/llm.service';
-import { Prisma } from '@prisma/client';
 
 interface GeneratedExercise {
   title: string;
@@ -645,23 +644,23 @@ export class ExercisesService {
     // Create prompt for the chat assistant
     const chatPrompt = `
       You are a helpful coding assistant specifically addressing questions about a code review.
-      
+
       Exercise: "${exercise.title}"
-      
+
       The user has submitted code in ${
         exercise.language?.name || 'a programming language'
       } and received a review.
-      
+
       Submitted code:
       \`\`\`${exercise.language?.name || 'code'}
       ${code}
       \`\`\`
-      
+
       Review comments:
       ${commentsSummary}
-      
+
       User's question: "${message}"
-      
+
       Your task:
       - Answer the user's specific question about the code or the review
       - Address technical concepts mentioned in the review
@@ -670,10 +669,10 @@ export class ExercisesService {
       - Be concise but complete with your explanations
       - If asked about code modifications, provide specific examples
       - If unsure about details not mentioned in the review, say so rather than speculating
-      
-      IMPORTANT: DO NOT include any thinking process or reasoning in your response. DO NOT use <think> tags or similar. 
+
+      IMPORTANT: DO NOT include any thinking process or reasoning in your response. DO NOT use <think> tags or similar.
       Provide ONLY the final answer directly addressing the user's question.
-      
+
       Keep your response professional, supportive, educational, and to-the-point.
     `;
 
