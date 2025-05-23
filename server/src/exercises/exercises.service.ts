@@ -75,7 +75,6 @@ export class ExercisesService {
       throw new ForbiddenException('Checkpoint ID is required');
     }
 
-    // Get the goal and checkpoint details
     const [goal, checkpoint] = await Promise.all([
       this.prisma.learningGoal.findFirst({
         where: { id: goalId, userId },
@@ -109,7 +108,6 @@ export class ExercisesService {
         goal.language
       );
 
-      // Create the exercise in the database
       return this.createExercise(userId, {
         title: exerciseData.title,
         description: exerciseData.description,
@@ -123,7 +121,6 @@ export class ExercisesService {
         testCases: exerciseData.testCases,
       });
     } catch (error) {
-      console.error('Error generating exercise:', error);
       throw new Error('Failed to generate exercise');
     }
   }
