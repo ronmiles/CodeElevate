@@ -359,7 +359,7 @@ export class ExercisesService {
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: 'asc',
       },
     });
   }
