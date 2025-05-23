@@ -1,4 +1,10 @@
-import { IsString, IsEnum, IsOptional, IsArray, IsObject } from 'class-validator';
+import {
+  IsString,
+  IsEnum,
+  IsOptional,
+  IsArray,
+  IsObject,
+} from 'class-validator';
 
 export enum DifficultyLevel {
   EASY = 'EASY',
@@ -45,10 +51,14 @@ export class CreateExerciseDto {
 }
 
 export class UpdateProgressDto {
-  @IsEnum(['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED', 'ABANDONED'])
-  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ABANDONED';
+  @IsEnum(['NOT_STARTED', 'IN_PROGRESS', 'COMPLETED'])
+  @IsOptional()
+  status?: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
 
   @IsString()
   @IsOptional()
   code?: string;
-} 
+
+  @IsOptional()
+  grade?: number;
+}
