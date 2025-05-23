@@ -265,34 +265,107 @@ export class ExercisesService {
         id: exerciseId,
         userId,
       },
+      include: {
+        checkpoint: true,
+      },
     });
 
     if (!exercise) {
       throw new NotFoundException('Exercise not found');
     }
 
+    // Prepare data with explicit typing
+    const updateData = {
+      status: updateProgressDto.status || undefined,
+      code: updateProgressDto.code,
+      attempts: { increment: 1 },
+      completedAt: updateProgressDto.status === 'COMPLETED' ? new Date() : null,
+    } as any; // Use type assertion for now
+
+    // Add grade if provided
+    if (updateProgressDto.grade !== undefined) {
+      updateData.grade = updateProgressDto.grade;
+    }
+
+    const createData = {
+      userId,
+      exerciseId,
+      status: updateProgressDto.status || 'IN_PROGRESS',
+      code: updateProgressDto.code,
+      attempts: 1,
+      completedAt: updateProgressDto.status === 'COMPLETED' ? new Date() : null,
+    } as any; // Use type assertion for now
+
+    // Add grade if provided
+    if (updateProgressDto.grade !== undefined) {
+      createData.grade = updateProgressDto.grade;
+    }
+
     // Create or update progress
-    return this.prisma.progress.upsert({
+    const progress = await this.prisma.progress.upsert({
       where: {
         userId_exerciseId: {
           userId,
           exerciseId,
         },
       },
-      update: {
-        ...updateProgressDto,
-        attempts: { increment: 1 },
-        completedAt:
-          updateProgressDto.status === 'COMPLETED' ? new Date() : null,
-      },
-      create: {
+      update: updateData,
+      create: createData,
+    });
+
+    // If the exercise belongs to a checkpoint, update the checkpoint status
+    if (exercise.checkpointId) {
+      await this.updateCheckpointStatus(userId, exercise.checkpointId);
+    }
+
+    return progress;
+  }
+
+  // Helper method to update checkpoint status based on exercise progress
+  private async updateCheckpointStatus(userId: string, checkpointId: string) {
+    // Get all exercises for this checkpoint
+    const exercises = await this.prisma.exercise.findMany({
+      where: {
+        checkpointId,
         userId,
-        exerciseId,
-        ...updateProgressDto,
-        attempts: 1,
-        completedAt:
-          updateProgressDto.status === 'COMPLETED' ? new Date() : null,
       },
+      include: {
+        progress: {
+          where: { userId },
+          orderBy: { updatedAt: 'desc' },
+          take: 1,
+        },
+      },
+    });
+
+    if (exercises.length === 0) {
+      return;
+    }
+
+    // Check if all exercises are completed with a passing grade
+    const allCompleted = exercises.every(
+      (ex) =>
+        ex.progress &&
+        ex.progress.length > 0 &&
+        ex.progress[0].grade !== undefined &&
+        ex.progress[0].grade >= 70
+    );
+
+    // Determine the new status
+    let newStatus: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+
+    if (allCompleted) {
+      newStatus = 'COMPLETED';
+    } else if (exercises.some((ex) => ex.progress && ex.progress.length > 0)) {
+      newStatus = 'IN_PROGRESS';
+    } else {
+      newStatus = 'NOT_STARTED';
+    }
+
+    // Update the checkpoint status
+    await this.prisma.checkpoint.update({
+      where: { id: checkpointId },
+      data: { status: newStatus },
     });
   }
 

@@ -115,6 +115,7 @@ model Progress {
   exercise    Exercise  @relation(fields: [exerciseId], references: [id])
   status      ProgressStatus
   code        String?   @db.Text
+  grade       Int?
   attempts    Int       @default(0)
   completedAt DateTime?
   createdAt   DateTime  @default(now())
