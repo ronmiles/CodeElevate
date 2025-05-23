@@ -14,6 +14,7 @@ export interface LearningGoal {
   status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ABANDONED';
   createdAt: string;
   updatedAt: string;
+  language?: string;
   roadmap?: {
     id: string;
     checkpoints: Array<{
@@ -23,10 +24,6 @@ export interface LearningGoal {
       status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
       order: number;
     }>;
-  };
-  preferredLanguage: {
-    id: string;
-    name: string;
   };
 }
 

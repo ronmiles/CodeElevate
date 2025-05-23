@@ -37,7 +37,7 @@ export const SubjectView: React.FC<SubjectViewProps> = ({ goal }) => {
 
       <div className="relative">
         <h2 className="text-xl font-semibold text-text mb-4">Exercises</h2>
-        
+
         {/* Scroll buttons */}
         <button
           onClick={() => scroll('left')}
@@ -85,7 +85,7 @@ export const SubjectView: React.FC<SubjectViewProps> = ({ goal }) => {
                     {exercise.difficulty}
                   </span>
                   <span className="px-2 py-1 bg-background rounded text-xs text-text-secondary">
-                    {exercise.language.name}
+                    {exercise.language}
                   </span>
                 </div>
               </motion.div>
@@ -95,4 +95,4 @@ export const SubjectView: React.FC<SubjectViewProps> = ({ goal }) => {
       </div>
     </div>
   );
-}; 
+};

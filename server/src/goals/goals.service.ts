@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateGoalDto, UpdateGoalStatusDto } from './dto/goals.dto';
 import { RoadmapDto } from './dto/roadmap.dto';
@@ -13,14 +9,11 @@ export class GoalsService {
   constructor(private prisma: PrismaService, private llmService: LLMService) {}
 
   async create(userId: string, createGoalDto: CreateGoalDto) {
-    // Get the default language (JavaScript)
-    const defaultLanguage = await this.prisma.programmingLanguage.findFirst({
-      where: { name: 'JavaScript' },
-    });
-
-    if (!defaultLanguage) {
-      throw new Error('Default programming language not found');
-    }
+    // Detect the programming language from the title and description
+    const detectedLanguage = await this.detectLanguage(
+      createGoalDto.title,
+      createGoalDto.description
+    );
 
     // Create the goal
     const goal = await this.prisma.learningGoal.create({
@@ -28,7 +21,7 @@ export class GoalsService {
         ...createGoalDto,
         userId,
         status: 'NOT_STARTED',
-        preferredLanguageId: defaultLanguage.id,
+        language: detectedLanguage,
       },
     });
 
@@ -47,9 +40,62 @@ export class GoalsService {
             },
           },
         },
-        preferredLanguage: true,
       },
     });
+  }
+
+  private async detectLanguage(
+    title: string,
+    description?: string
+  ): Promise<string> {
+    const prompt = `Analyze the following learning goal and determine the most appropriate programming language for it.
+
+    Title: "${title}"
+    ${description ? `Description: "${description}"` : ''}
+
+    Consider common programming languages and determine which one best fits this goal based on the technologies, frameworks, or concepts mentioned.
+
+    Available programming languages:
+    JavaScript, Python, Java, C++, C#, Go, Rust, TypeScript, PHP, Ruby, Swift, Kotlin, Scala, R, HTML/CSS, SQL
+
+    You MUST select one specific programming language from the list above. If the goal is general or doesn't clearly specify a language, choose JavaScript as it's the most versatile for beginners.
+
+    Return only the programming language name.`;
+
+    const schema = `{
+      "language": "string"
+    }`;
+
+    const response = await this.llmService.generateJson<{ language: string }>(
+      prompt,
+      schema
+    );
+
+    const detectedLanguage = response.language?.trim();
+
+    const languageMap: Record<string, string> = {
+      javascript: 'JavaScript',
+      python: 'Python',
+      java: 'Java',
+      'c++': 'C++',
+      'c#': 'C#',
+      csharp: 'C#',
+      go: 'Go',
+      golang: 'Go',
+      rust: 'Rust',
+      typescript: 'TypeScript',
+      php: 'PHP',
+      ruby: 'Ruby',
+      swift: 'Swift',
+      kotlin: 'Kotlin',
+      scala: 'Scala',
+      r: 'R',
+      html: 'HTML/CSS',
+      css: 'HTML/CSS',
+      sql: 'SQL',
+    };
+
+    return languageMap[detectedLanguage.toLowerCase()] ?? 'JavaScript';
   }
 
   private async generateRoadmap(
@@ -60,7 +106,7 @@ export class GoalsService {
     const prompt = `Create a detailed learning roadmap for the following goal:
     Title: "${title}"
     ${description ? `Description: "${description}"` : ''}
-    
+
     Create a step-by-step roadmap with checkpoints that will help the user achieve this goal.
     Each checkpoint should represent a specific milestone or concept to master.
     The checkpoints should be ordered logically, starting from basics and progressing to more advanced concepts.
@@ -83,7 +129,6 @@ export class GoalsService {
         schema
       );
 
-      // Create the roadmap with checkpoints
       await this.prisma.roadmap.create({
         data: {
           goalId,
@@ -139,7 +184,6 @@ export class GoalsService {
             },
           },
         },
-        preferredLanguage: true,
       },
     });
 
@@ -216,10 +260,10 @@ export class GoalsService {
     description?: string
   ): Promise<{ description: string }> {
     const prompt = `Create a proffesional description for a learning goal with the following information:
-    
+
     Title: "${title}"
     ${description ? `Current Description: "${description}"` : ''}
-    
+
     The description should:
     - Outline what the learner will gain from completing it
     - Be concise but professional
@@ -228,7 +272,7 @@ export class GoalsService {
         ? 'Use the current description as a foundation and enhance it.'
         : 'Create a complete description from scratch.'
     }
-    
+
     Return your response as a JSON object with a single field called "description" containing the enhanced description text.`;
 
     const schema = `{

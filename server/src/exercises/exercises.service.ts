@@ -49,6 +49,7 @@ export class ExercisesService {
       title: createExerciseDto.title,
       description: createExerciseDto.description,
       difficulty: createExerciseDto.difficulty,
+      language: createExerciseDto.language,
       initialCode: createExerciseDto.initialCode || '',
       solution: createExerciseDto.solution || '',
       hints: createExerciseDto.hints || [],
@@ -64,15 +65,11 @@ export class ExercisesService {
             connect: { id: createExerciseDto.checkpointId },
           }
         : undefined,
-      language: {
-        connect: { id: createExerciseDto.languageId },
-      },
     };
 
     return this.prisma.exercise.create({
       data: exerciseData,
       include: {
-        language: true,
         goal: true,
       },
     });
@@ -91,7 +88,6 @@ export class ExercisesService {
     const [goal, checkpoint] = await Promise.all([
       this.prisma.learningGoal.findFirst({
         where: { id: goalId, userId },
-        include: { preferredLanguage: true },
       }),
       this.prisma.checkpoint.findFirst({
         where: {
@@ -110,12 +106,8 @@ export class ExercisesService {
       throw new NotFoundException('Goal or checkpoint not found');
     }
 
-    if (!goal.preferredLanguageId) {
-      throw new NotFoundException('Goal has no preferred language set');
-    }
-
-    if (!goal.preferredLanguage) {
-      throw new NotFoundException('Preferred language not found');
+    if (!goal.language) {
+      throw new NotFoundException('Goal has no language set');
     }
 
     const schema = `{
@@ -188,7 +180,7 @@ export class ExercisesService {
         Goal: "${goal.title}"
         Checkpoint: "${checkpoint.title}"
         Checkpoint Description: "${checkpoint.description}"
-        Programming Language: ${goal.preferredLanguage.name}
+        Programming Language: ${goal.language}
 
         The exercise should help the user master this specific checkpoint.
         Make it challenging but achievable for someone at this stage in their learning journey.`,
@@ -200,7 +192,7 @@ export class ExercisesService {
         title: exerciseData.title,
         description: exerciseData.description,
         difficulty: DifficultyLevel.MEDIUM,
-        languageId: goal.preferredLanguageId,
+        language: goal.language,
         goalId: goal.id,
         checkpointId: checkpoint.id,
         initialCode: exerciseData.initialCode,
@@ -218,7 +210,6 @@ export class ExercisesService {
     return this.prisma.exercise.findMany({
       where: { userId },
       include: {
-        language: true,
         goal: true,
         progress: {
           where: { userId },
@@ -237,7 +228,6 @@ export class ExercisesService {
         userId,
       },
       include: {
-        language: true,
         goal: true,
         progress: {
           where: { userId },
@@ -375,7 +365,6 @@ export class ExercisesService {
       include: {
         exercise: {
           include: {
-            language: true,
             goal: true,
           },
         },
@@ -394,7 +383,7 @@ export class ExercisesService {
 
     progress.forEach((p) => {
       // Count by language
-      const lang = p.exercise.language.name;
+      const lang = p.exercise.language;
       if (!stats.byLanguage[lang]) {
         stats.byLanguage[lang] = { total: 0, completed: 0 };
       }
@@ -442,7 +431,6 @@ export class ExercisesService {
         checkpointId,
       },
       include: {
-        language: true,
         goal: true,
         checkpoint: true,
         progress: {
@@ -478,7 +466,7 @@ export class ExercisesService {
       ${exercise.description}
 
       Submitted code:
-      \`\`\`${exercise.language?.name || 'code'}
+      \`\`\`${exercise.language || 'code'}
       ${code}
       \`\`\`
 
@@ -529,7 +517,7 @@ export class ExercisesService {
         Your job is to take feedback points and check if they are valid for the original code, and make sure they are mapped to the correct line ranges.
 
         Original code:
-        \`\`\`${exercise.language?.name || 'code'}
+        \`\`\`${exercise.language || 'code'}
         ${code}
         \`\`\`
 
@@ -721,11 +709,11 @@ export class ExercisesService {
       Exercise: "${exercise.title}"
 
       The user has submitted code in ${
-        exercise.language?.name || 'a programming language'
+        exercise.language || 'a programming language'
       } and received a review.
 
       Submitted code:
-      \`\`\`${exercise.language?.name || 'code'}
+      \`\`\`${exercise.language || 'code'}
       ${code}
       \`\`\`
 

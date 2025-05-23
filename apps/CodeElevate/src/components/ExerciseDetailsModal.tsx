@@ -76,7 +76,7 @@ export const ExerciseDetailsOverlay: React.FC<ExerciseDetailsOverlayProps> = ({
                   {exercise.difficulty}
                 </span>
                 <span className="px-2 py-1 bg-background rounded text-xs text-text-secondary">
-                  {exercise.language.name}
+                  {exercise.language}
                 </span>
               </div>
             </div>

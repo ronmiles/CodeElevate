@@ -234,12 +234,7 @@ export const LearningGoalPage: React.FC = () => {
 
   const generateExerciseMutation = useMutation({
     mutationFn: () =>
-      exercisesApi.generateExercise(
-        goalId!,
-        goal!.preferredLanguage.id,
-        selectedCheckpoint!.id,
-        token!
-      ),
+      exercisesApi.generateExercise(goalId!, selectedCheckpoint!.id, token!),
     onSuccess: async (newExercise) => {
       queryClient.invalidateQueries({
         queryKey: ['exercises', selectedCheckpoint?.id],
