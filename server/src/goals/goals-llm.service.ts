@@ -1,0 +1,131 @@
+import { Injectable } from '@nestjs/common';
+import { LLMService } from '../llm/llm.service';
+import { RoadmapDto } from './dto/roadmap.dto';
+
+@Injectable()
+export class GoalsLLMService {
+  constructor(private llmService: LLMService) {}
+
+  async detectLanguage(title: string, description?: string): Promise<string> {
+    const prompt = `Analyze the following learning goal and determine the most appropriate programming language for it.
+
+    Title: "${title}"
+    ${description ? `Description: "${description}"` : ''}
+
+    Consider common programming languages and determine which one best fits this goal based on the technologies, frameworks, or concepts mentioned.
+
+    Available programming languages:
+    JavaScript, Python, Java, C++, C#, Go, Rust, TypeScript, PHP, Ruby, Swift, Kotlin, Scala, R, HTML/CSS, SQL
+
+    You MUST select one specific programming language from the list above. If the goal is general or doesn't clearly specify a language, choose JavaScript as it's the most versatile for beginners.
+
+    Return only the programming language name.`;
+
+    const schema = `{
+      "language": "string"
+    }`;
+
+    const response = await this.llmService.generateJson<{ language: string }>(
+      prompt,
+      schema
+    );
+
+    const detectedLanguage = response.language?.trim();
+
+    const languageMap: Record<string, string> = {
+      javascript: 'JavaScript',
+      python: 'Python',
+      java: 'Java',
+      'c++': 'C++',
+      'c#': 'C#',
+      csharp: 'C#',
+      go: 'Go',
+      golang: 'Go',
+      rust: 'Rust',
+      typescript: 'TypeScript',
+      php: 'PHP',
+      ruby: 'Ruby',
+      swift: 'Swift',
+      kotlin: 'Kotlin',
+      scala: 'Scala',
+      r: 'R',
+      html: 'HTML/CSS',
+      css: 'HTML/CSS',
+      sql: 'SQL',
+    };
+
+    return languageMap[detectedLanguage.toLowerCase()] ?? 'JavaScript';
+  }
+
+  async generateRoadmap(
+    title: string,
+    description?: string
+  ): Promise<RoadmapDto> {
+    const prompt = `Create a detailed learning roadmap for the following goal:
+    Title: "${title}"
+    ${description ? `Description: "${description}"` : ''}
+
+    Create a step-by-step roadmap with checkpoints that will help the user achieve this goal.
+    Each checkpoint should represent a specific milestone or concept to master.
+    The checkpoints should be ordered logically, starting from basics and progressing to more advanced concepts.
+    Each checkpoint's description should clearly explain what needs to be learned and why it's important.
+    Keep the total number of checkpoints between 5-10 depending on the complexity of the goal.`;
+
+    const schema = `{
+      "checkpoints": [
+        {
+          "title": "string",
+          "description": "string",
+          "order": "number"
+        }
+      ]
+    }`;
+
+    try {
+      const roadmapData = await this.llmService.generateJson<RoadmapDto>(
+        prompt,
+        schema
+      );
+
+      return roadmapData;
+    } catch (error) {
+      console.error('Error generating roadmap:', error);
+      throw new Error('Failed to generate roadmap');
+    }
+  }
+
+  async enhanceDescription(
+    title: string,
+    description?: string
+  ): Promise<{ description: string }> {
+    const prompt = `Create a proffesional description for a learning goal with the following information:
+
+    Title: "${title}"
+    ${description ? `Current Description: "${description}"` : ''}
+
+    The description should:
+    - Outline what the learner will gain from completing it
+    - Be concise but professional
+    ${
+      description
+        ? 'Use the current description as a foundation and enhance it.'
+        : 'Create a complete description from scratch.'
+    }
+
+    Return your response as a JSON object with a single field called "description" containing the enhanced description text.`;
+
+    const schema = `{
+      "description": "string"
+    }`;
+
+    try {
+      const result = await this.llmService.generateJson<{
+        description: string;
+      }>(prompt, schema);
+      return { description: result.description.trim() };
+    } catch (error) {
+      console.error('Error enhancing goal description:', error);
+      throw new Error('Failed to enhance goal description');
+    }
+  }
+}
