@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { API_URL } from './base';
 
 const api = axios.create({
-  baseURL: 'http://localhost:3333/api',
+  baseURL: API_URL,
   timeout: 5000,
   headers: {
     'Content-Type': 'application/json',
@@ -57,4 +58,4 @@ export const roadmapApi = {
       handleApiError(error);
     }
   },
-}; 
+};

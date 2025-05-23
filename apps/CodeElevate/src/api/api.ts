@@ -1,8 +1,9 @@
 import axios from 'axios';
+import { API_URL } from './base';
 
 // Create an axios instance with default config
 export const api = axios.create({
-  baseURL: 'http://localhost:3333/api',
+  baseURL: API_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',
@@ -69,4 +70,4 @@ export function handleApiError(error: any): never {
     throw new Error(message);
   }
   throw error;
-} 
+}
