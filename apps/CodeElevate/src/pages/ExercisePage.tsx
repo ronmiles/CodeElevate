@@ -7,6 +7,7 @@ import {
   CodeReviewSummary,
 } from '../api/exercises.api';
 import { useAuth } from '../contexts/AuthContext';
+import { ChevronLeft, ChevronRight, ListIcon } from 'lucide-react';
 
 import ExerciseHeader from '../components/exercise/ExerciseHeader';
 import SolutionEditor from '../components/exercise/SolutionEditor';
@@ -26,6 +27,7 @@ import CodeReview from '../components/exercise/CodeReview';
 import ReviewSummary from '../components/exercise/ReviewSummary';
 import Hints from '../components/exercise/Hints';
 import GradeDisplay from '../components/exercise/GradeDisplay';
+import NavigationButton from '../components/exercise/NavigationButton';
 
 export const ExercisePage: React.FC = () => {
   const { exerciseId } = useParams<{ exerciseId: string }>();
@@ -50,6 +52,10 @@ export const ExercisePage: React.FC = () => {
   const [showReview, setShowReview] = useState(false);
   const [reviewError, setReviewError] = useState<string | undefined>(undefined);
   const [showHints, setShowHints] = useState(false);
+  const [checkpointExercises, setCheckpointExercises] = useState<Exercise[]>(
+    []
+  );
+  const [currentExerciseIndex, setCurrentExerciseIndex] = useState<number>(-1);
 
   useEffect(() => {
     const fetchExercise = async () => {
@@ -75,6 +81,19 @@ export const ExercisePage: React.FC = () => {
           }
         } else if (data.initialCode) {
           setSolution(data.initialCode);
+        }
+
+        // Fetch all exercises for this checkpoint to enable navigation
+        if (data.checkpointId) {
+          const checkpointData = await exercisesApi.getCheckpointExercises(
+            data.checkpointId,
+            token
+          );
+          setCheckpointExercises(checkpointData);
+
+          // Find the index of the current exercise
+          const index = checkpointData.findIndex((e) => e.id === exerciseId);
+          setCurrentExerciseIndex(index);
         }
       } catch (err) {
         setError(
@@ -132,10 +151,12 @@ export const ExercisePage: React.FC = () => {
       }
 
       // Update the progress with the code solution and grade
+      // The server will automatically update checkpoint status based on all exercises
       await exercisesApi.updateProgress(
         exerciseId,
         {
-          status: 'IN_PROGRESS',
+          status:
+            reviewScore && reviewScore >= 70 ? 'COMPLETED' : 'IN_PROGRESS',
           code: solution,
           grade: reviewScore,
         },
@@ -197,6 +218,7 @@ export const ExercisePage: React.FC = () => {
         setReviewScore(reviewResponse.score);
         setStatusMessage('Code review completed');
 
+        // The server will automatically update checkpoint status based on all exercises
         await exercisesApi.updateProgress(
           exerciseId,
           {
@@ -246,6 +268,27 @@ export const ExercisePage: React.FC = () => {
     }
   };
 
+  const navigateToPreviousExercise = () => {
+    if (currentExerciseIndex > 0 && checkpointExercises.length > 0) {
+      navigate(`/exercise/${checkpointExercises[currentExerciseIndex - 1].id}`);
+    }
+  };
+
+  const navigateToNextExercise = () => {
+    if (
+      currentExerciseIndex < checkpointExercises.length - 1 &&
+      checkpointExercises.length > 0
+    ) {
+      navigate(`/exercise/${checkpointExercises[currentExerciseIndex + 1].id}`);
+    }
+  };
+
+  const navigateToCheckpoint = () => {
+    if (exercise?.goal?.id && exercise?.checkpointId) {
+      navigate(`/goal/${exercise.goal.id}/checkpoint/${exercise.checkpointId}`);
+    }
+  };
+
   if (loading) {
     return <LoadingState />;
   }
@@ -261,9 +304,38 @@ export const ExercisePage: React.FC = () => {
   const languageId = getMonacoLanguage(exercise.language.name);
 
   return (
-    <div className="container mx-auto max-w-6xl py-8 px-4 bg-background">
+    <div className="container mx-auto max-w-6xl py-8 px-4 bg-background relative">
+      {/* Navigation Buttons */}
+      <NavigationButton
+        direction="previous"
+        onClick={navigateToPreviousExercise}
+        disabled={currentExerciseIndex <= 0}
+      />
+
+      <NavigationButton
+        direction="next"
+        onClick={navigateToNextExercise}
+        disabled={currentExerciseIndex >= checkpointExercises.length - 1}
+      />
+
       <div className="flex flex-col gap-8">
-        <ExerciseHeader exercise={exercise} />
+        <div className="mb-2">
+          <button
+            onClick={navigateToCheckpoint}
+            className="text-text-secondary hover:text-text flex items-center text-sm mb-4 transition-colors"
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Back to Learning Module
+          </button>
+
+          <div className="flex justify-between items-center">
+            <ExerciseHeader
+              exercise={exercise}
+              position={currentExerciseIndex}
+              total={checkpointExercises.length}
+            />
+          </div>
+        </div>
 
         {reviewScore !== undefined && !showSolution && !showReview && (
           <GradeDisplay grade={reviewScore} />
