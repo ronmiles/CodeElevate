@@ -7,7 +7,7 @@ import { Navbar } from '../layout/Navbar';
 import { SparkleIcon } from '../common/SparkleIcon';
 
 export const Dashboard: React.FC = () => {
-  const { signOut, token } = useAuth();
+  const { token } = useAuth();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isAddingGoal, setIsAddingGoal] = useState(false);
@@ -39,36 +39,19 @@ export const Dashboard: React.FC = () => {
     },
   });
 
-  const updateGoalStatusMutation = useMutation({
-    mutationFn: ({ goalId, status }: { goalId: string; status: LearningGoal['status'] }) =>
-      goalsApi.updateGoalStatus(goalId, status, token!),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['goals'] });
-    },
-    onError: (error: Error) => {
-      console.error('Failed to update goal status:', error);
-    },
-  });
-
-  const handleSignOut = () => {
-    signOut();
-    navigate('/signin');
-  };
-
   const handleSubmitGoal = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    
+
     try {
       if (!token) {
         throw new Error('You must be logged in to create a goal');
       }
-      
+
       if (!newGoal.title.trim()) {
         throw new Error('Goal title is required');
       }
 
-      // Clean up the goal data before submission
       const goalData: CreateGoalData = {
         title: newGoal.title.trim(),
         description: newGoal.description?.trim() || undefined,
@@ -82,15 +65,11 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  const handleStatusChange = (goalId: string, status: LearningGoal['status']) => {
-    updateGoalStatusMutation.mutate({ goalId, status });
-  };
-
   const handleGoalClick = (goalId: string) => {
-    console.log('Goal clicked:', goalId);
-    console.log('Current token:', token);
-    console.log('Navigating to:', `/goal/${goalId}`);
-    navigate(`/goal/${goalId}`);
+    const goal = goals?.find((g) => g.id === goalId);
+    const firstCheckpointId = goal?.roadmap?.checkpoints[0]?.id;
+
+    navigate(`/goal/${goalId}/checkpoint/${firstCheckpointId}`);
   };
 
   const handleEnhanceDescription = async () => {
@@ -113,13 +92,15 @@ export const Dashboard: React.FC = () => {
         newGoal.description?.trim() || undefined,
         token
       );
-      
+
       setNewGoal({
         ...newGoal,
-        description: enhancedDescription
+        description: enhancedDescription,
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to enhance description');
+      setError(
+        err instanceof Error ? err.message : 'Failed to enhance description'
+      );
       console.error('Error enhancing description:', err);
     } finally {
       setIsEnhancingDescription(false);
@@ -151,31 +132,44 @@ export const Dashboard: React.FC = () => {
           )}
 
           {isAddingGoal && (
-            <form onSubmit={handleSubmitGoal} className="mb-8 bg-secondary-background p-6 rounded-lg border border-border">
+            <form
+              onSubmit={handleSubmitGoal}
+              className="mb-8 bg-secondary-background p-6 rounded-lg border border-border"
+            >
               <div className="space-y-4">
                 <div>
-                  <label htmlFor="title" className="block text-sm font-medium text-text mb-1">
+                  <label
+                    htmlFor="title"
+                    className="block text-sm font-medium text-text mb-1"
+                  >
                     Goal Title
                   </label>
                   <input
                     type="text"
                     id="title"
                     value={newGoal.title}
-                    onChange={(e) => setNewGoal({ ...newGoal, title: e.target.value })}
+                    onChange={(e) =>
+                      setNewGoal({ ...newGoal, title: e.target.value })
+                    }
                     className="auth-input"
                     placeholder="Enter your learning goal"
                     required
                   />
                 </div>
                 <div>
-                  <label htmlFor="description" className="block text-sm font-medium text-text mb-1">
+                  <label
+                    htmlFor="description"
+                    className="block text-sm font-medium text-text mb-1"
+                  >
                     Description
                   </label>
                   <div className="space-y-2">
                     <textarea
                       id="description"
                       value={newGoal.description}
-                      onChange={(e) => setNewGoal({ ...newGoal, description: e.target.value })}
+                      onChange={(e) =>
+                        setNewGoal({ ...newGoal, description: e.target.value })
+                      }
                       className="auth-input min-h-[100px] w-full"
                       placeholder="Describe your goal in detail"
                     />
@@ -188,20 +182,29 @@ export const Dashboard: React.FC = () => {
                         title="Use AI to enhance your goal description"
                       >
                         <SparkleIcon />
-                        {isEnhancingDescription ? 'Writing...' : newGoal.description ? 'Enhance with AI' : 'Write with AI'}
+                        {isEnhancingDescription
+                          ? 'Writing...'
+                          : newGoal.description
+                          ? 'Enhance with AI'
+                          : 'Write with AI'}
                       </button>
                     </div>
                   </div>
                 </div>
                 <div>
-                  <label htmlFor="deadline" className="block text-sm font-medium text-text mb-1">
+                  <label
+                    htmlFor="deadline"
+                    className="block text-sm font-medium text-text mb-1"
+                  >
                     Deadline (Optional)
                   </label>
                   <input
                     type="date"
                     id="deadline"
                     value={newGoal.deadline}
-                    onChange={(e) => setNewGoal({ ...newGoal, deadline: e.target.value })}
+                    onChange={(e) =>
+                      setNewGoal({ ...newGoal, deadline: e.target.value })
+                    }
                     className="auth-input"
                   />
                 </div>
@@ -229,9 +232,13 @@ export const Dashboard: React.FC = () => {
           )}
 
           {isLoadingGoals ? (
-            <div className="text-center text-text-secondary">Loading goals...</div>
+            <div className="text-center text-text-secondary">
+              Loading goals...
+            </div>
           ) : goals?.length === 0 ? (
-            <div className="text-center text-text-secondary">No learning goals yet. Add your first goal!</div>
+            <div className="text-center text-text-secondary">
+              No learning goals yet. Add your first goal!
+            </div>
           ) : (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
               {goals?.map((goal: LearningGoal) => (
@@ -240,9 +247,13 @@ export const Dashboard: React.FC = () => {
                   className="bg-secondary-background p-6 rounded-lg border border-border cursor-pointer hover:shadow-lg transition-all duration-200"
                   onClick={() => handleGoalClick(goal.id)}
                 >
-                  <h3 className="text-lg font-medium text-text mb-2">{goal.title}</h3>
+                  <h3 className="text-lg font-medium text-text mb-2">
+                    {goal.title}
+                  </h3>
                   {goal.description && (
-                    <p className="text-text-secondary mb-4 text-sm">{goal.description}</p>
+                    <p className="text-text-secondary mb-4 text-sm">
+                      {goal.description}
+                    </p>
                   )}
                   {goal.deadline && (
                     <p className="text-sm text-text-secondary mb-4">
@@ -272,4 +283,4 @@ export const Dashboard: React.FC = () => {
       </main>
     </div>
   );
-}; 
+};
