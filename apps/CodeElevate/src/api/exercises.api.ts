@@ -33,12 +33,16 @@ export interface Exercise {
   progress?: Progress[];
   createdAt: string;
   updatedAt: string;
+  checkpointId?: string;
 }
 
 export interface Progress {
   id: string;
-  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED' | 'ABANDONED';
+  userId: string;
+  exerciseId: string;
+  status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
   code?: string;
+  grade?: number;
   attempts: number;
   completedAt?: string;
   createdAt: string;
@@ -158,23 +162,19 @@ export const exercisesApi = {
 
   updateProgress: async (
     exerciseId: string,
-    data: { status: Progress['status']; code?: string },
+    data: {
+      status: 'NOT_STARTED' | 'IN_PROGRESS' | 'COMPLETED';
+      code?: string;
+      grade?: number;
+    },
     token: string
   ) => {
-    try {
-      const response = await api.post(
-        `/exercises/${exerciseId}/progress`,
-        data,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-      return response.data;
-    } catch (error) {
-      handleApiError(error);
-    }
+    const response = await api.post(`/exercises/${exerciseId}/progress`, data, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
   },
 
   getUserProgress: async (token: string) => {
