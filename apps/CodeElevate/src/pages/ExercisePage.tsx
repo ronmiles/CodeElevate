@@ -151,10 +151,12 @@ export const ExercisePage: React.FC = () => {
       }
 
       // Update the progress with the code solution and grade
+      // The server will automatically update checkpoint status based on all exercises
       await exercisesApi.updateProgress(
         exerciseId,
         {
-          status: 'IN_PROGRESS',
+          status:
+            reviewScore && reviewScore >= 70 ? 'COMPLETED' : 'IN_PROGRESS',
           code: solution,
           grade: reviewScore,
         },
@@ -216,6 +218,7 @@ export const ExercisePage: React.FC = () => {
         setReviewScore(reviewResponse.score);
         setStatusMessage('Code review completed');
 
+        // The server will automatically update checkpoint status based on all exercises
         await exercisesApi.updateProgress(
           exerciseId,
           {
