@@ -7,9 +7,8 @@ import {
 } from '@mui/material';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import axios from 'axios';
-import { motion } from 'framer-motion';
 import React, { useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { Exercise, exercisesApi } from '../api/exercises.api';
 import { goalsApi, LearningGoal } from '../api/goals.api';
 import { Checkpoint } from '../api/roadmap.api';
@@ -17,6 +16,8 @@ import { ExerciseDetailsOverlay } from '../components/ExerciseDetailsModal';
 import { Navbar } from '../components/layout/Navbar';
 import { useAuth } from '../hooks/useAuth';
 import { ExerciseProvider } from '../contexts/ExerciseContext';
+import LearningPathSidebar from '../components/learning/LearningPathSidebar';
+import ExercisesList from '../components/learning/ExercisesList';
 
 // Add scrollbar styling at the top of the file
 const scrollbarStyles = `
@@ -44,6 +45,7 @@ export const LearningGoalPage: React.FC = () => {
   }>();
   const { token } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [toast, setToast] = useState<{
     open: boolean;
     message: string;
@@ -62,10 +64,16 @@ export const LearningGoalPage: React.FC = () => {
     null
   );
 
+  // Add state to store checkpoint exercises data
+  const [checkpointExercisesMap, setCheckpointExercisesMap] = useState<
+    Record<string, Exercise[]>
+  >({});
+
   const {
     data: goal,
     isLoading: isLoadingGoal,
     error: goalError,
+    refetch: refetchGoal,
   } = useQuery<LearningGoal>({
     queryKey: ['goal', goalId],
     queryFn: async () => {
@@ -96,6 +104,86 @@ export const LearningGoalPage: React.FC = () => {
     enabled: !!goalId && !!token,
     retry: false,
   });
+
+  // Add effect to fetch exercises for all checkpoints
+  useEffect(() => {
+    const fetchAllCheckpointExercises = async () => {
+      if (!goal?.roadmap?.checkpoints || !token) return;
+
+      const exercisesMap: Record<string, Exercise[]> = {};
+
+      // Create promises for all checkpoint exercise fetches
+      const promises = goal.roadmap.checkpoints.map(async (checkpoint) => {
+        try {
+          const exercises = await exercisesApi.getCheckpointExercises(
+            checkpoint.id,
+            token
+          );
+          exercisesMap[checkpoint.id] = exercises;
+        } catch (error) {
+          console.error(
+            `Error fetching exercises for checkpoint ${checkpoint.id}:`,
+            error
+          );
+          exercisesMap[checkpoint.id] = [];
+        }
+      });
+
+      // Wait for all fetches to complete
+      if (promises) {
+        await Promise.all(promises);
+      }
+
+      setCheckpointExercisesMap(exercisesMap);
+    };
+
+    fetchAllCheckpointExercises();
+  }, [goal?.roadmap?.checkpoints, token]);
+
+  // Add effect to refetch goal data when navigating back from exercise page
+  useEffect(() => {
+    // Refetch goal data when returning to this page from an exercise
+    if (goalId && token) {
+      refetchGoal();
+
+      // Also refresh checkpoint exercises data
+      if (goal?.roadmap?.checkpoints) {
+        const fetchAllCheckpointExercises = async () => {
+          const exercisesMap: Record<string, Exercise[]> = {};
+
+          const promises = goal.roadmap?.checkpoints.map(async (checkpoint) => {
+            try {
+              const exercises = await exercisesApi.getCheckpointExercises(
+                checkpoint.id,
+                token
+              );
+              exercisesMap[checkpoint.id] = exercises;
+            } catch (error) {
+              console.error(
+                `Error fetching exercises for checkpoint ${checkpoint.id}:`,
+                error
+              );
+              exercisesMap[checkpoint.id] = [];
+            }
+          });
+
+          if (promises) {
+            await Promise.all(promises);
+          }
+
+          setCheckpointExercisesMap(exercisesMap);
+        };
+
+        fetchAllCheckpointExercises();
+      }
+    }
+  }, [
+    refetchGoal,
+    goalId,
+    token,
+    location.pathname,
+    goal?.roadmap?.checkpoints,
+  ]);
 
   useEffect(() => {
     if (goal && checkpointId) {
@@ -152,10 +240,24 @@ export const LearningGoalPage: React.FC = () => {
         selectedCheckpoint!.id,
         token!
       ),
-    onSuccess: () => {
+    onSuccess: async (newExercise) => {
       queryClient.invalidateQueries({
         queryKey: ['exercises', selectedCheckpoint?.id],
       });
+
+      // Update local exercise map with the new exercise
+      if (selectedCheckpoint) {
+        const currentExercises =
+          checkpointExercisesMap[selectedCheckpoint.id] || [];
+        setCheckpointExercisesMap({
+          ...checkpointExercisesMap,
+          [selectedCheckpoint.id]: [...currentExercises, newExercise],
+        });
+      }
+
+      // Refetch goal to show updated checkpoint status from server
+      refetchGoal();
+
       setToast({
         open: true,
         message: 'New exercise has been created for this checkpoint',
@@ -266,58 +368,12 @@ export const LearningGoalPage: React.FC = () => {
       <div className="min-h-screen bg-background flex flex-col">
         <Navbar />
         <div className="flex flex-1 overflow-hidden">
-          <div
-            className="w-64 bg-secondary-background rounded-lg m-3 mr-0 flex-shrink-0 flex flex-col"
-            style={{
-              height: 'calc(100vh - 64px)',
-            }}
-          >
-            <div className="p-4 border-b border-border">
-              <h2 className="text-lg font-semibold text-text">Learning Path</h2>
-            </div>
-
-            <div
-              className="flex-1 p-4 pt-2 overflow-y-auto"
-              style={{
-                scrollbarWidth: 'thin',
-                scrollbarColor: 'rgba(75, 85, 99, 0.5) rgba(17, 24, 39, 0.1)',
-              }}
-            >
-              <div className="space-y-2">
-                {goal?.roadmap?.checkpoints.map((checkpoint) => (
-                  <motion.div
-                    key={checkpoint.id}
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => handleCheckpointClick(checkpoint)}
-                    className={`p-3 rounded-lg cursor-pointer transition-colors duration-200 ${
-                      selectedCheckpoint?.id === checkpoint.id
-                        ? 'bg-primary text-white'
-                        : 'hover:bg-background text-text-secondary hover:text-text'
-                    }`}
-                  >
-                    <div className="font-medium">{checkpoint.title}</div>
-                    <div className="text-sm opacity-80 truncate">
-                      {checkpoint.description}
-                    </div>
-                    <div className="mt-2">
-                      <span
-                        className={`text-xs px-2 py-1 rounded-full ${
-                          checkpoint.status === 'COMPLETED'
-                            ? 'bg-green-100 text-green-800'
-                            : checkpoint.status === 'IN_PROGRESS'
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}
-                      >
-                        {checkpoint.status.replace('_', ' ')}
-                      </span>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          </div>
+          <LearningPathSidebar
+            checkpoints={goal.roadmap?.checkpoints || []}
+            checkpointExercisesMap={checkpointExercisesMap}
+            selectedCheckpointId={selectedCheckpoint?.id || null}
+            onCheckpointClick={handleCheckpointClick}
+          />
 
           <div
             className="flex-1 p-6 m-3 ml-3 rounded-lg overflow-y-auto"
@@ -336,148 +392,14 @@ export const LearningGoalPage: React.FC = () => {
                   </p>
                 </div>
 
-                <div className="relative">
-                  <h2 className="text-xl font-semibold text-text mb-4">
-                    Exercises
-                  </h2>
-
-                  <button
-                    onClick={() => scroll('left')}
-                    className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-secondary-background rounded-full shadow-lg"
-                  >
-                    ←
-                  </button>
-                  <button
-                    onClick={() => scroll('right')}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-secondary-background rounded-full shadow-lg"
-                  >
-                    →
-                  </button>
-
-                  <div
-                    ref={containerRef}
-                    className="overflow-x-auto flex space-x-4 pb-4 px-8 scrollbar-hide"
-                  >
-                    {isLoadingExercises ? (
-                      [...Array(4)].map((_, i) => (
-                        <div
-                          key={i}
-                          className="flex-shrink-0 w-72 h-48 bg-secondary-background rounded-lg animate-pulse"
-                        />
-                      ))
-                    ) : exercises?.length === 0 ? (
-                      <div className="flex-shrink-0 w-full text-center">
-                        <div className="text-text-secondary mb-4">
-                          No exercises available for this checkpoint yet
-                        </div>
-                        <Button
-                          variant="contained"
-                          className="bg-primary hover:bg-primary-dark"
-                          onClick={() => generateExerciseMutation.mutate()}
-                          disabled={generateExerciseMutation.isPending}
-                        >
-                          {generateExerciseMutation.isPending ? (
-                            <>
-                              <CircularProgress size={20} className="mr-2" />{' '}
-                              Generating...
-                            </>
-                          ) : (
-                            'Generate Exercise'
-                          )}
-                        </Button>
-                      </div>
-                    ) : (
-                      <>
-                        {exercises?.map((exercise: Exercise) => (
-                          <motion.div
-                            key={exercise.id}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                            className="flex-shrink-0 w-72 bg-secondary-background rounded-lg p-4 cursor-pointer bg-green-50"
-                            onClick={() => {
-                              navigate(`/exercise/${exercise.id}`);
-                            }}
-                          >
-                            <h3 className="font-semibold text-text mb-2">
-                              {exercise.title}
-                            </h3>
-                            <p className="text-sm text-text-secondary mb-4 line-clamp-2">
-                              {exercise.description}
-                            </p>
-                            <div className="flex space-x-2">
-                              <span className="px-2 py-1 bg-background rounded text-xs text-text-secondary">
-                                {exercise.difficulty}
-                              </span>
-                              <span className="px-2 py-1 bg-background rounded text-xs text-text-secondary">
-                                {exercise.language.name}
-                              </span>
-                            </div>
-                          </motion.div>
-                        ))}
-
-                        <motion.div
-                          whileHover={{
-                            scale: generateExerciseMutation.isPending
-                              ? 1
-                              : 1.02,
-                          }}
-                          whileTap={{
-                            scale: generateExerciseMutation.isPending
-                              ? 1
-                              : 0.98,
-                          }}
-                          className={`flex-shrink-0 w-72 bg-secondary-background rounded-lg p-4 ${
-                            generateExerciseMutation.isPending
-                              ? 'opacity-70 cursor-default'
-                              : 'cursor-pointer border-primary hover:border-primary-hover'
-                          } border-2 border-dashed`}
-                          onClick={() =>
-                            !generateExerciseMutation.isPending &&
-                            generateExerciseMutation.mutate()
-                          }
-                          style={{
-                            pointerEvents: generateExerciseMutation.isPending
-                              ? 'none'
-                              : 'auto',
-                          }}
-                        >
-                          <div className="h-full flex flex-col items-center justify-center text-center p-4">
-                            <div className="w-12 h-12 rounded-full bg-primary bg-opacity-10 flex items-center justify-center mb-4">
-                              {generateExerciseMutation.isPending ? (
-                                <CircularProgress
-                                  size={24}
-                                  className="text-primary"
-                                />
-                              ) : (
-                                <svg
-                                  className="w-6 h-6 text-primary"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                                  />
-                                </svg>
-                              )}
-                            </div>
-                            <h3 className="font-semibold text-text mb-2">
-                              Generate More
-                            </h3>
-                            <p className="text-sm text-text-secondary">
-                              {generateExerciseMutation.isPending
-                                ? 'Creating new exercise...'
-                                : 'Create a new exercise for this checkpoint'}
-                            </p>
-                          </div>
-                        </motion.div>
-                      </>
-                    )}
-                  </div>
-                </div>
+                <ExercisesList
+                  exercises={exercises}
+                  isLoading={isLoadingExercises}
+                  isPendingGeneration={generateExerciseMutation.isPending}
+                  onGenerateExercise={() => generateExerciseMutation.mutate()}
+                  containerRef={containerRef}
+                  onScroll={scroll}
+                />
               </>
             ) : (
               <div className="h-full flex items-center justify-center text-text-secondary">

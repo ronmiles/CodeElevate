@@ -1,0 +1,1 @@
+ALTER TABLE "Progress" ADD COLUMN "grade" INTEGER;
