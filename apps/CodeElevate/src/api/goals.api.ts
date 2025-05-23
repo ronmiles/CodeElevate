@@ -6,6 +6,25 @@ export interface CreateGoalData {
   deadline?: string;
 }
 
+export interface CustomizationQuestion {
+  id: string;
+  question: string;
+  type: 'text' | 'select' | 'multiselect';
+  options?: string[];
+}
+
+export interface CustomizationAnswer {
+  questionId: string;
+  answer: string;
+}
+
+export interface CreateCustomizedGoalData {
+  title: string;
+  description?: string;
+  deadline?: string;
+  customizationAnswers: CustomizationAnswer[];
+}
+
 export interface LearningGoal {
   id: string;
   title: string;
@@ -54,6 +73,45 @@ export const goalsApi = {
       return response.data;
     } catch (error) {
       console.error('Error fetching goal details:', error);
+      throw error;
+    }
+  },
+
+  async generateCustomizationQuestions(
+    title: string,
+    description: string | undefined,
+    token: string
+  ): Promise<CustomizationQuestion[]> {
+    try {
+      const response = await api.post(
+        '/goals/generate-questions',
+        { title, description },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Error generating customization questions:', error);
+      throw error;
+    }
+  },
+
+  async createCustomizedGoal(
+    data: CreateCustomizedGoalData,
+    token: string
+  ): Promise<LearningGoal> {
+    try {
+      const response = await api.post('/goals/create-customized', data, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error creating customized goal:', error);
       throw error;
     }
   },

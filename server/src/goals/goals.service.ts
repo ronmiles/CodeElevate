@@ -1,6 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateGoalDto, UpdateGoalStatusDto } from './dto/goals.dto';
+import {
+  CreateGoalDto,
+  UpdateGoalStatusDto,
+  GenerateQuestionsDto,
+  CreateCustomizedGoalDto,
+  CustomizationQuestion,
+} from './dto/goals.dto';
 import { GoalsLLMService } from './goals-llm.service';
 
 @Injectable()
@@ -9,6 +15,61 @@ export class GoalsService {
     private prisma: PrismaService,
     private goalsLlmService: GoalsLLMService
   ) {}
+
+  async generateCustomizationQuestions(
+    generateQuestionsDto: GenerateQuestionsDto
+  ): Promise<CustomizationQuestion[]> {
+    return this.goalsLlmService.generateCustomizationQuestions(
+      generateQuestionsDto.title,
+      generateQuestionsDto.description
+    );
+  }
+
+  async createCustomized(
+    userId: string,
+    createCustomizedGoalDto: CreateCustomizedGoalDto
+  ) {
+    // Detect the programming language from the title and description
+    const detectedLanguage = await this.goalsLlmService.detectLanguage(
+      createCustomizedGoalDto.title,
+      createCustomizedGoalDto.description
+    );
+
+    // Create the goal
+    const goal = await this.prisma.learningGoal.create({
+      data: {
+        title: createCustomizedGoalDto.title,
+        description: createCustomizedGoalDto.description,
+        deadline: createCustomizedGoalDto.deadline,
+        userId,
+        status: 'NOT_STARTED',
+        language: detectedLanguage,
+      },
+    });
+
+    // Generate and create the roadmap with customization answers
+    await this.generateRoadmapWithCustomization(
+      goal.id,
+      goal.title,
+      goal.description,
+      createCustomizedGoalDto.customizationAnswers
+    );
+
+    return this.prisma.learningGoal.findUnique({
+      where: { id: goal.id },
+      include: {
+        roadmap: {
+          include: {
+            checkpoints: {
+              orderBy: {
+                order: 'asc',
+              },
+            },
+          },
+        },
+      },
+    });
+  }
 
   async create(userId: string, createGoalDto: CreateGoalDto) {
     // Detect the programming language from the title and description
@@ -44,6 +105,36 @@ export class GoalsService {
         },
       },
     });
+  }
+
+  private async generateRoadmapWithCustomization(
+    goalId: string,
+    title: string,
+    description?: string,
+    customizationAnswers?: any[]
+  ) {
+    try {
+      const roadmapData = await this.goalsLlmService.generateRoadmap(
+        title,
+        description,
+        customizationAnswers
+      );
+
+      await this.prisma.roadmap.create({
+        data: {
+          goalId,
+          checkpoints: {
+            create: roadmapData.checkpoints.map((checkpoint) => ({
+              ...checkpoint,
+              status: 'NOT_STARTED',
+            })),
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Error generating customized roadmap:', error);
+      throw new Error('Failed to generate customized roadmap');
+    }
   }
 
   private async generateRoadmap(
