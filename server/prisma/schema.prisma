@@ -39,8 +39,6 @@ model ProgrammingLanguage {
   id                String        @id @default(uuid())
   name              String        @unique
   profiles          UserProfile[]
-  exercises         Exercise[]
-  learningGoals     LearningGoal[]
   createdAt         DateTime      @default(now())
   updatedAt         DateTime      @updatedAt
 }
@@ -55,8 +53,7 @@ model LearningGoal {
   deadline          DateTime?
   exercises         Exercise[]
   roadmap           Roadmap?
-  preferredLanguageId String
-  preferredLanguage ProgrammingLanguage @relation(fields: [preferredLanguageId], references: [id])
+  language          String?             // Store language name directly as string
   createdAt         DateTime            @default(now())
   updatedAt         DateTime            @updatedAt
 }
@@ -90,8 +87,7 @@ model Exercise {
   title             String
   description       String
   difficulty        DifficultyLevel
-  languageId        String
-  language          ProgrammingLanguage @relation(fields: [languageId], references: [id])
+  language          String              // Store language name directly as string
   goalId            String
   goal              LearningGoal        @relation(fields: [goalId], references: [id])
   checkpointId      String?

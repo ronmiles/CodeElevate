@@ -301,7 +301,7 @@ export const ExercisePage: React.FC = () => {
     return <NotFoundState />;
   }
 
-  const languageId = getMonacoLanguage(exercise.language.name);
+  const languageId = getMonacoLanguage(exercise.language);
 
   return (
     <div className="container mx-auto max-w-6xl py-8 px-4 bg-background relative">

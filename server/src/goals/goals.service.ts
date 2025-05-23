@@ -1,26 +1,21 @@
-import {
-  Injectable,
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateGoalDto, UpdateGoalStatusDto } from './dto/goals.dto';
-import { RoadmapDto } from './dto/roadmap.dto';
-import { LLMService } from '../llm/llm.service';
+import { GoalsLLMService } from './goals-llm.service';
 
 @Injectable()
 export class GoalsService {
-  constructor(private prisma: PrismaService, private llmService: LLMService) {}
+  constructor(
+    private prisma: PrismaService,
+    private goalsLlmService: GoalsLLMService
+  ) {}
 
   async create(userId: string, createGoalDto: CreateGoalDto) {
-    // Get the default language (JavaScript)
-    const defaultLanguage = await this.prisma.programmingLanguage.findFirst({
-      where: { name: 'JavaScript' },
-    });
-
-    if (!defaultLanguage) {
-      throw new Error('Default programming language not found');
-    }
+    // Detect the programming language from the title and description
+    const detectedLanguage = await this.goalsLlmService.detectLanguage(
+      createGoalDto.title,
+      createGoalDto.description
+    );
 
     // Create the goal
     const goal = await this.prisma.learningGoal.create({
@@ -28,7 +23,7 @@ export class GoalsService {
         ...createGoalDto,
         userId,
         status: 'NOT_STARTED',
-        preferredLanguageId: defaultLanguage.id,
+        language: detectedLanguage,
       },
     });
 
@@ -47,7 +42,6 @@ export class GoalsService {
             },
           },
         },
-        preferredLanguage: true,
       },
     });
   }
@@ -57,33 +51,12 @@ export class GoalsService {
     title: string,
     description?: string
   ) {
-    const prompt = `Create a detailed learning roadmap for the following goal:
-    Title: "${title}"
-    ${description ? `Description: "${description}"` : ''}
-    
-    Create a step-by-step roadmap with checkpoints that will help the user achieve this goal.
-    Each checkpoint should represent a specific milestone or concept to master.
-    The checkpoints should be ordered logically, starting from basics and progressing to more advanced concepts.
-    Each checkpoint's description should clearly explain what needs to be learned and why it's important.
-    Keep the total number of checkpoints between 5-10 depending on the complexity of the goal.`;
-
-    const schema = `{
-      "checkpoints": [
-        {
-          "title": "string",
-          "description": "string",
-          "order": "number"
-        }
-      ]
-    }`;
-
     try {
-      const roadmapData = await this.llmService.generateJson<RoadmapDto>(
-        prompt,
-        schema
+      const roadmapData = await this.goalsLlmService.generateRoadmap(
+        title,
+        description
       );
 
-      // Create the roadmap with checkpoints
       await this.prisma.roadmap.create({
         data: {
           goalId,
@@ -139,7 +112,6 @@ export class GoalsService {
             },
           },
         },
-        preferredLanguage: true,
       },
     });
 
@@ -215,34 +187,6 @@ export class GoalsService {
     title: string,
     description?: string
   ): Promise<{ description: string }> {
-    const prompt = `Create a proffesional description for a learning goal with the following information:
-    
-    Title: "${title}"
-    ${description ? `Current Description: "${description}"` : ''}
-    
-    The description should:
-    - Outline what the learner will gain from completing it
-    - Be concise but professional
-    ${
-      description
-        ? 'Use the current description as a foundation and enhance it.'
-        : 'Create a complete description from scratch.'
-    }
-    
-    Return your response as a JSON object with a single field called "description" containing the enhanced description text.`;
-
-    const schema = `{
-      "description": "string"
-    }`;
-
-    try {
-      const result = await this.llmService.generateJson<{
-        description: string;
-      }>(prompt, schema);
-      return { description: result.description.trim() };
-    } catch (error) {
-      console.error('Error enhancing goal description:', error);
-      throw new Error('Failed to enhance goal description');
-    }
+    return this.goalsLlmService.enhanceDescription(title, description);
   }
 }

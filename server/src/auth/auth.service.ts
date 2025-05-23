@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../prisma/prisma.service';
 import { SignUpDto, SignInDto, OnboardingDto } from './dto/auth.dto';
@@ -6,10 +10,7 @@ import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
-  constructor(
-    private prisma: PrismaService,
-    private jwtService: JwtService,
-  ) {}
+  constructor(private prisma: PrismaService, private jwtService: JwtService) {}
 
   async signUp(dto: SignUpDto) {
     // Check if user exists
@@ -74,7 +75,7 @@ export class AuthService {
       update: {
         skillLevel: dto.skillLevel,
         preferredLanguages: {
-          connectOrCreate: dto.preferredLanguages.map(lang => ({
+          connectOrCreate: dto.preferredLanguages.map((lang) => ({
             where: { name: lang },
             create: { name: lang },
           })),
@@ -84,7 +85,7 @@ export class AuthService {
         userId,
         skillLevel: dto.skillLevel,
         preferredLanguages: {
-          connectOrCreate: dto.preferredLanguages.map(lang => ({
+          connectOrCreate: dto.preferredLanguages.map((lang) => ({
             where: { name: lang },
             create: { name: lang },
           })),
@@ -114,27 +115,24 @@ export class AuthService {
   }
 
   private async createInitialGoals(userId: string, dto: OnboardingDto) {
-    // Get the default language (JavaScript)
-    const defaultLanguage = await this.prisma.programmingLanguage.findFirst({
-      where: { name: 'JavaScript' },
-    });
-
-    if (!defaultLanguage) {
-      throw new Error('Default programming language not found');
-    }
+    // Use the first preferred language or default to JavaScript
+    const primaryLanguage =
+      dto.preferredLanguages.length > 0
+        ? dto.preferredLanguages[0]
+        : 'JavaScript';
 
     // Create initial goals
     await Promise.all(
-      dto.learningGoals.map(goal =>
+      dto.learningGoals.map((goal) =>
         this.prisma.learningGoal.create({
           data: {
             title: goal,
             userId,
             status: 'NOT_STARTED',
-            preferredLanguageId: defaultLanguage.id,
+            language: primaryLanguage,
           },
-        }),
-      ),
+        })
+      )
     );
   }
-} 
+}
