@@ -9,7 +9,12 @@ import {
   Request,
 } from '@nestjs/common';
 import { GoalsService } from './goals.service';
-import { CreateGoalDto, UpdateGoalStatusDto } from './dto/goals.dto';
+import {
+  CreateGoalDto,
+  UpdateGoalStatusDto,
+  GenerateQuestionsDto,
+  CreateCustomizedGoalDto,
+} from './dto/goals.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('goals')
@@ -20,6 +25,27 @@ export class GoalsController {
   @Post()
   create(@Request() req, @Body() createGoalDto: CreateGoalDto) {
     return this.goalsService.create(req.user.id, createGoalDto);
+  }
+
+  @Post('generate-questions')
+  generateQuestions(
+    @Request() req,
+    @Body() generateQuestionsDto: GenerateQuestionsDto
+  ) {
+    return this.goalsService.generateCustomizationQuestions(
+      generateQuestionsDto
+    );
+  }
+
+  @Post('create-customized')
+  createCustomized(
+    @Request() req,
+    @Body() createCustomizedGoalDto: CreateCustomizedGoalDto
+  ) {
+    return this.goalsService.createCustomized(
+      req.user.id,
+      createCustomizedGoalDto
+    );
   }
 
   @Post('enhance-description')
