@@ -14,10 +14,7 @@ export interface Exercise {
   title: string;
   description: string;
   difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'EXPERT';
-  language: {
-    id: string;
-    name: string;
-  };
+  language: string;
   goal: {
     id: string;
     title: string;
@@ -115,7 +112,6 @@ export const exercisesApi = {
 
   async generateExercise(
     goalId: string,
-    languageId: string,
     checkpointId: string,
     token: string
   ): Promise<Exercise> {
@@ -123,7 +119,6 @@ export const exercisesApi = {
       '/exercises/generate',
       {
         goalId,
-        languageId,
         checkpointId,
       },
       {

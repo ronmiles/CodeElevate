@@ -24,7 +24,7 @@ export class CreateExerciseDto {
   difficulty: DifficultyLevel;
 
   @IsString()
-  languageId: string;
+  language: string;
 
   @IsString()
   goalId: string;

@@ -24,7 +24,7 @@ const ExerciseHeader: React.FC<ExerciseHeaderProps> = ({
       </div>
       <div className="flex gap-2 mb-4">
         <span className="px-2 py-1 bg-purple-900 text-purple-100 text-xs font-medium rounded-full">
-          {exercise.language.name}
+          {exercise.language}
         </span>
         <span
           className={`px-2 py-1 text-xs font-medium rounded-full ${
