@@ -18,6 +18,16 @@ import { useAuth } from '../hooks/useAuth';
 import { ExerciseProvider } from '../contexts/ExerciseContext';
 import LearningPathSidebar from '../components/learning/LearningPathSidebar';
 import ExercisesList from '../components/learning/ExercisesList';
+import { LearningMaterialView } from '../components/learning/LearningMaterialView';
+import {
+  ContentToggle,
+  ContentType,
+} from '../components/learning/ContentToggle';
+import {
+  learningMaterialsApi,
+  LearningMaterial,
+} from '../api/learningMaterials.api';
+import { BookOpen, Code2 } from 'lucide-react';
 
 // Add scrollbar styling at the top of the file
 const scrollbarStyles = `
@@ -68,6 +78,13 @@ export const LearningGoalPage: React.FC = () => {
   const [checkpointExercisesMap, setCheckpointExercisesMap] = useState<
     Record<string, Exercise[]>
   >({});
+
+  // Learning materials state
+  const [activeContent, setActiveContent] = useState<ContentType>('material');
+  const [learningMaterial, setLearningMaterial] =
+    useState<LearningMaterial | null>(null);
+  const [isLoadingLearningMaterial, setIsLoadingLearningMaterial] =
+    useState(false);
 
   const {
     data: goal,
@@ -197,9 +214,34 @@ export const LearningGoalPage: React.FC = () => {
           createdAt: (found as any).createdAt || new Date().toISOString(),
           updatedAt: (found as any).updatedAt || new Date().toISOString(),
         } as Checkpoint);
+
+        // Fetch learning material for this checkpoint
+        fetchLearningMaterial(checkpointId);
+
+        // Auto-select appropriate content tab based on availability
+        setActiveContent('material'); // Always start with learning materials for proper learning flow
       }
     }
   }, [goal, checkpointId]);
+
+  const fetchLearningMaterial = async (checkpointId: string) => {
+    if (!token) return;
+
+    try {
+      setIsLoadingLearningMaterial(true);
+      const material = await learningMaterialsApi.getLearningMaterial(
+        checkpointId,
+        token
+      );
+      setLearningMaterial(material);
+    } catch (error) {
+      // Learning material might not exist yet, which is okay
+      console.log('Learning material not found, will need to generate it');
+      setLearningMaterial(null);
+    } finally {
+      setIsLoadingLearningMaterial(false);
+    }
+  };
 
   useEffect(() => {
     if (goal && !checkpointId && goal.roadmap?.checkpoints.length) {
@@ -268,6 +310,29 @@ export const LearningGoalPage: React.FC = () => {
     },
   });
 
+  const generateLearningMaterialMutation = useMutation({
+    mutationFn: () =>
+      learningMaterialsApi.generateLearningMaterial(
+        selectedCheckpoint!.id,
+        token!
+      ),
+    onSuccess: (newLearningMaterial) => {
+      setLearningMaterial(newLearningMaterial);
+      setToast({
+        open: true,
+        message: 'Learning material has been generated for this checkpoint',
+        severity: 'success',
+      });
+    },
+    onError: (error: Error) => {
+      setToast({
+        open: true,
+        message: error.message,
+        severity: 'error',
+      });
+    },
+  });
+
   const handleCheckpointClick = async (checkpoint: {
     id: string;
     title: string;
@@ -283,6 +348,10 @@ export const LearningGoalPage: React.FC = () => {
       };
       setSelectedCheckpoint(fullCheckpoint);
       navigate(`/goal/${goalId}/checkpoint/${checkpoint.id}`);
+
+      // Fetch or generate learning material
+      await fetchLearningMaterial(checkpoint.id);
+
       const existingExercises = await exercisesApi.getCheckpointExercises(
         checkpoint.id,
         token!
@@ -293,7 +362,7 @@ export const LearningGoalPage: React.FC = () => {
     } catch (error) {
       setToast({
         open: true,
-        message: 'Error loading exercises. Please try again.',
+        message: 'Error loading checkpoint content. Please try again.',
         severity: 'error',
       });
     }
@@ -387,14 +456,105 @@ export const LearningGoalPage: React.FC = () => {
                   </p>
                 </div>
 
-                <ExercisesList
-                  exercises={exercises}
-                  isLoading={isLoadingExercises}
-                  isPendingGeneration={generateExerciseMutation.isPending}
-                  onGenerateExercise={() => generateExerciseMutation.mutate()}
-                  containerRef={containerRef}
-                  onScroll={scroll}
+                {/* Content Toggle */}
+                <ContentToggle
+                  activeContent={activeContent}
+                  onToggle={setActiveContent}
+                  hasLearningMaterial={!!learningMaterial}
+                  exerciseCount={exercises?.length || 0}
+                  completedExercises={
+                    exercises?.filter(
+                      (ex) =>
+                        ex.progress &&
+                        ex.progress.length > 0 &&
+                        ex.progress[0].grade !== undefined &&
+                        ex.progress[0].grade >= 70
+                    ).length || 0
+                  }
                 />
+
+                {/* Content Area */}
+                {activeContent === 'material' ? (
+                  <div>
+                    {learningMaterial ? (
+                      <LearningMaterialView
+                        learningMaterial={learningMaterial}
+                        isLoading={isLoadingLearningMaterial}
+                      />
+                    ) : (
+                      <div className="text-center py-12">
+                        <div className="mb-4">
+                          <BookOpen className="w-16 h-16 mx-auto text-text-secondary mb-4" />
+                          <h3 className="text-lg font-semibold text-text mb-2">
+                            No Learning Material Yet
+                          </h3>
+                          <p className="text-text-secondary mb-6">
+                            Generate learning material to help you understand
+                            this checkpoint before tackling the exercises.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() =>
+                            generateLearningMaterialMutation.mutate()
+                          }
+                          disabled={generateLearningMaterialMutation.isPending}
+                          className="bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
+                        >
+                          {generateLearningMaterialMutation.isPending ? (
+                            <>
+                              <div className="inline-block w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                              Generating...
+                            </>
+                          ) : (
+                            'Generate Learning Material'
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div>
+                    {exercises && exercises.length > 0 ? (
+                      <ExercisesList
+                        exercises={exercises}
+                        isLoading={isLoadingExercises}
+                        isPendingGeneration={generateExerciseMutation.isPending}
+                        onGenerateExercise={() =>
+                          generateExerciseMutation.mutate()
+                        }
+                        containerRef={containerRef}
+                        onScroll={scroll}
+                      />
+                    ) : (
+                      <div className="text-center py-12">
+                        <div className="mb-4">
+                          <Code2 className="w-16 h-16 mx-auto text-text-secondary mb-4" />
+                          <h3 className="text-lg font-semibold text-text mb-2">
+                            No Exercises Yet
+                          </h3>
+                          <p className="text-text-secondary mb-6">
+                            Generate exercises to practice the concepts you've
+                            learned in this checkpoint.
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => generateExerciseMutation.mutate()}
+                          disabled={generateExerciseMutation.isPending}
+                          className="bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
+                        >
+                          {generateExerciseMutation.isPending ? (
+                            <>
+                              <div className="inline-block w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                              Generating...
+                            </>
+                          ) : (
+                            'Generate Exercise'
+                          )}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </>
             ) : (
               <div className="h-full flex items-center justify-center text-text-secondary">
