@@ -68,18 +68,32 @@ model Roadmap {
 }
 
 model Checkpoint {
-  id          String    @id @default(uuid())
-  title       String
-  description String
-  order       Int
-  status      CheckpointStatus
-  roadmapId   String
-  roadmap     Roadmap   @relation(fields: [roadmapId], references: [id])
-  exercises   Exercise[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id              String             @id @default(uuid())
+  title           String
+  description     String
+  order           Int
+  status          CheckpointStatus
+  roadmapId       String
+  roadmap         Roadmap            @relation(fields: [roadmapId], references: [id])
+  exercises       Exercise[]
+  learningMaterial LearningMaterial?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
 
   @@unique([roadmapId, order])
+}
+
+model LearningMaterial {
+  id                    String    @id @default(uuid())
+  checkpointId          String    @unique
+  checkpoint            Checkpoint @relation(fields: [checkpointId], references: [id])
+  title                 String
+  overview              String    @db.Text
+  sections              Json      // Array of {heading: string, body: string}
+  estimatedTimeMinutes  Int       @default(5)
+  codeExamples          Json?     // Array of {language: string, code: string, explanation: string}
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 }
 
 model Exercise {
