@@ -21,11 +21,15 @@ export interface LLMProvider {
 
 // Helper function to ensure integer values
 export function ensureInteger(
-  value: number | undefined,
+  value: number | string | undefined,
   defaultValue: number
 ): number {
-  if (value === undefined) return defaultValue;
-  return Math.floor(value);
+  if (value === undefined || value === null) return defaultValue;
+  const numericValue = typeof value === 'string' ? parseInt(value, 10) : value;
+  if (typeof numericValue !== 'number' || isNaN(numericValue)) {
+    return defaultValue;
+  }
+  return Math.floor(numericValue);
 }
 
 // Helper function to ensure valid temperature values
@@ -33,6 +37,9 @@ export function ensureTemperature(
   value: any,
   defaultValue: number = 0.7
 ): number {
-  if (typeof value !== 'number' || isNaN(value)) return defaultValue;
-  return Math.max(0, Math.min(1, value)); // Clamp between 0 and 1
+  if (value === undefined || value === null) return defaultValue;
+  const numericValue = typeof value === 'string' ? parseFloat(value) : value;
+  if (typeof numericValue !== 'number' || isNaN(numericValue))
+    return defaultValue;
+  return Math.max(0, Math.min(1, numericValue));
 }
