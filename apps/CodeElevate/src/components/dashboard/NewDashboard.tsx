@@ -113,12 +113,12 @@ export const NewDashboard: React.FC = () => {
               </div>
 
               <div className="mt-10 grid gap-6 md:grid-cols-2">
-                <div className="rounded-2xl bg-secondary-background/70 border border-border p-6 h-52">
+                <div className="rounded-2xl bg-primary-background/80 backdrop-blur border border-border p-6 h-52">
                   <div className="text-text font-semibold">
                     Your Strong Points
                   </div>
                 </div>
-                <div className="rounded-2xl bg-secondary-background/70 border border-border p-6 h-52">
+                <div className="rounded-2xl bg-primary-background/80 backdrop-blur border border-border p-6 h-52">
                   <div className="text-text font-semibold">
                     Skills to Strengthen
                   </div>

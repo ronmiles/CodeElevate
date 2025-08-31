@@ -12,8 +12,18 @@ const ExerciseHeader: React.FC<ExerciseHeaderProps> = ({
   position,
   total,
 }) => {
+  const isNewDashboard =
+    typeof document !== 'undefined' &&
+    document.documentElement.classList.contains('new-dashboard');
+
   return (
-    <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-6 rounded-lg shadow-sm border border-gray-700">
+    <div
+      className={
+        isNewDashboard
+          ? 'bg-secondary-background p-6 rounded-lg shadow-sm border border-border'
+          : 'bg-gradient-to-r from-gray-800 to-gray-900 p-6 rounded-lg shadow-sm border border-gray-700'
+      }
+    >
       <div className="flex justify-between items-start">
         <h1 className="text-2xl font-bold text-text mb-2">{exercise.title}</h1>
         {position !== undefined && total !== undefined && (
@@ -23,7 +33,13 @@ const ExerciseHeader: React.FC<ExerciseHeaderProps> = ({
         )}
       </div>
       <div className="flex gap-2 mb-4">
-        <span className="px-2 py-1 bg-purple-900 text-purple-100 text-xs font-medium rounded-full">
+        <span
+          className={
+            isNewDashboard
+              ? 'px-2 py-1 text-xs font-medium rounded-full bg-background text-text-secondary border border-border'
+              : 'px-2 py-1 bg-purple-900 text-purple-100 text-xs font-medium rounded-full'
+          }
+        >
           {exercise.language}
         </span>
         <span

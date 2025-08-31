@@ -14,6 +14,12 @@
   --error: #EF4444;
 }
 
+/* New dashboard theme (feature-flag enabled) */
+html.new-dashboard {
+  --background: #19181A;
+  --secondary-background: rgb(33, 32, 34);
+}
+
 body {
   background-color: var(--background);
   color: var(--text);
@@ -116,4 +122,9 @@ body {
 
 .markdown-content table th {
   @apply bg-gray-800;
+}
+
+/* Feature flag: new dashboard – code block background */
+html.new-dashboard .markdown-content pre {
+  background-color: #151718;
 }

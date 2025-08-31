@@ -16,7 +16,7 @@ export class GroqProvider implements LLMProvider {
   constructor(config: LLMConfig) {
     this.config = {
       model: 'mixtral-8x7b-32768',
-      temperature: 0.7,
+      temperature: 0.1,
       maxTokens: 2000,
       ...config,
     };

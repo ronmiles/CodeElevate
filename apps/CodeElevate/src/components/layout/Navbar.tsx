@@ -14,8 +14,8 @@ export const Navbar: React.FC = () => {
     localStorage.getItem('dashboard:useNew') === 'true';
 
   const outerClasses = isNew
-    ? 'bg-secondary-background border-b border-border rounded-full mt-3 max-w-5xl mx-auto'
-    : 'bg-secondary-background border-b border-border';
+    ? 'bg-secondary-background border-border rounded-full mt-3 max-w-5xl mx-auto'
+    : 'bg-secondary-background border border-border';
 
   const innerClasses = isNew
     ? 'max-w-6xl mx-auto px-4 sm:px-6 lg:px-8'

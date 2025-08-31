@@ -276,6 +276,43 @@ export class ExercisesService {
       where: { id: checkpointId },
       data: { status: newStatus },
     });
+
+    // Recompute and update the parent goal status based on all checkpoint statuses
+    const checkpoint = await this.prisma.checkpoint.findUnique({
+      where: { id: checkpointId },
+      include: { roadmap: true },
+    });
+
+    if (checkpoint?.roadmap?.goalId) {
+      const checkpoints = await this.prisma.checkpoint.findMany({
+        where: {
+          roadmap: {
+            goalId: checkpoint.roadmap.goalId,
+          },
+        },
+        select: { status: true },
+      });
+
+      if (checkpoints.length > 0) {
+        const allCompleted = checkpoints.every(
+          (cp) => cp.status === 'COMPLETED'
+        );
+        const anyStarted = checkpoints.some(
+          (cp) => cp.status !== 'NOT_STARTED'
+        );
+
+        const goalStatus = allCompleted
+          ? 'COMPLETED'
+          : anyStarted
+          ? 'IN_PROGRESS'
+          : 'NOT_STARTED';
+
+        await this.prisma.learningGoal.update({
+          where: { id: checkpoint.roadmap.goalId },
+          data: { status: goalStatus },
+        });
+      }
+    }
   }
 
   async getUserProgress(userId: string) {

@@ -7,7 +7,7 @@ import {
   CodeReviewSummary,
 } from '../api/exercises.api';
 import { useAuth } from '../contexts/AuthContext';
-import { ChevronLeft, ChevronRight, ListIcon } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ListIcon, X, Loader2 } from 'lucide-react';
 
 import ExerciseHeader from '../components/exercise/ExerciseHeader';
 import SolutionEditor from '../components/exercise/SolutionEditor';
@@ -56,6 +56,7 @@ export const ExercisePage: React.FC = () => {
     []
   );
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState<number>(-1);
+  const [showToast, setShowToast] = useState(false);
 
   useEffect(() => {
     const fetchExercise = async () => {
@@ -107,6 +108,20 @@ export const ExercisePage: React.FC = () => {
 
     fetchExercise();
   }, [exerciseId, token]);
+
+  useEffect(() => {
+    if (!statusMessage) return;
+    setShowToast(true);
+    let timeoutId: number | undefined;
+    if (submitStatus !== 'loading') {
+      timeoutId = window.setTimeout(() => setShowToast(false), 3500);
+    }
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [statusMessage, submitStatus]);
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -344,7 +359,7 @@ export const ExercisePage: React.FC = () => {
         <SolutionContainer
           showSolution={showSolution}
           showReview={showReview}
-          statusMessage={statusMessage}
+          statusMessage={''}
           submitStatus={submitStatus}
           reviewLoading={reviewLoading}
           solution={solution}
@@ -468,6 +483,46 @@ export const ExercisePage: React.FC = () => {
             </div>
           )}
         </SolutionContainer>
+
+        {showToast && statusMessage && (
+          <div
+            className="fixed top-6 right-6 z-50"
+            role="status"
+            aria-live="polite"
+          >
+            <div
+              className={`flex items-start gap-3 rounded-lg border px-4 py-3 shadow-lg ${
+                submitStatus === 'error'
+                  ? 'bg-red-900/80 border-red-700 text-red-50'
+                  : submitStatus === 'success'
+                  ? 'bg-green-900/80 border-green-700 text-green-50'
+                  : 'bg-gray-900/80 border-gray-700 text-gray-100'
+              }`}
+            >
+              {submitStatus === 'loading' ? (
+                <Loader2 className="h-4 w-4 animate-spin mt-0.5" />
+              ) : (
+                <span
+                  className={`h-2 w-2 rounded-full mt-1 ${
+                    submitStatus === 'error'
+                      ? 'bg-red-400'
+                      : submitStatus === 'success'
+                      ? 'bg-green-400'
+                      : 'bg-gray-400'
+                  }`}
+                />
+              )}
+              <div className="text-sm">{statusMessage}</div>
+              <button
+                aria-label="Close notification"
+                className="ml-2 text-gray-300 hover:text-white"
+                onClick={() => setShowToast(false)}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       <SolutionModal

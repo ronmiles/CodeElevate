@@ -73,13 +73,13 @@ export const CodeReview: React.FC<CodeReviewProps> = ({
       )}
 
       {!isLoading && !error && comments.length > 0 && !showChat && (
-        <div className="fixed bottom-6 right-6">
+        <div className="fixed bottom-6 right-6 z-50 pointer-events-auto">
           <button
             onClick={() => setShowChat(true)}
             className="bg-blue-600 text-white p-3 rounded-full shadow-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
           >
             <FiMessageSquare size={20} />
-            <span>Ask about the review</span>
+            <span>Ask about this review</span>
           </button>
         </div>
       )}

@@ -9,9 +9,11 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
-export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   console.log('ThemeProvider rendering');
-  
+
   const [theme, setTheme] = useState<Theme>(() => {
     const savedTheme = localStorage.getItem('theme');
     const initialTheme = (savedTheme as Theme) || 'dark';
@@ -26,6 +28,17 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     document.documentElement.classList.add(theme);
   }, [theme]);
 
+  // Apply feature-flagged new dashboard palette at the root (html element)
+  useEffect(() => {
+    const applyNewDashboardFlag = () => {
+      const isNew = localStorage.getItem('dashboard:useNew') === 'true';
+      document.documentElement.classList.toggle('new-dashboard', isNew);
+    };
+    applyNewDashboardFlag();
+    window.addEventListener('storage', applyNewDashboardFlag);
+    return () => window.removeEventListener('storage', applyNewDashboardFlag);
+  }, []);
+
   const toggleTheme = () => {
     console.log('toggleTheme called, current theme:', theme);
     setTheme((prevTheme) => {
@@ -37,7 +50,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const contextValue = {
     theme,
-    toggleTheme
+    toggleTheme,
   };
 
   console.log('ThemeContext value:', contextValue);
@@ -56,4 +69,4 @@ export const useTheme = () => {
     throw new Error('useTheme must be used within a ThemeProvider');
   }
   return context;
-}; 
+};

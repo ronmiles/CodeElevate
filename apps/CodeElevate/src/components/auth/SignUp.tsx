@@ -4,15 +4,18 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
+import logo from '../../assets/logo.svg';
 
-const signUpSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+const signUpSchema = z
+  .object({
+    email: z.string().email('Invalid email address'),
+    password: z.string().min(8, 'Password must be at least 8 characters'),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
+  });
 
 type SignUpFormData = z.infer<typeof signUpSchema>;
 
@@ -40,17 +43,22 @@ export const SignUp: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="auth-card">
+        <div className="flex flex-col items-center mb-4">
+          <img src={logo} alt="CodeElevate Logo" className="h-10 w-10 mb-2" />
+          <span className="text-2xl font-bold text-text">CodeElevate</span>
+        </div>
         <div>
           <h2 className="auth-title">Create your account</h2>
-          <p className="auth-subtitle">
-            Start your learning journey today
-          </p>
+          <p className="auth-subtitle">Start your learning journey today</p>
         </div>
-        
+
         <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
           <div className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-text mb-2">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-text mb-2"
+              >
                 Email address
               </label>
               <input
@@ -66,7 +74,10 @@ export const SignUp: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-text mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-text mb-2"
+              >
                 Password
               </label>
               <input
@@ -82,7 +93,10 @@ export const SignUp: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-text mb-2">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-text mb-2"
+              >
                 Confirm Password
               </label>
               <input
@@ -100,21 +114,31 @@ export const SignUp: React.FC = () => {
             </div>
           </div>
 
-          {error && (
-            <div className="auth-error">{error}</div>
-          )}
+          {error && <div className="auth-error">{error}</div>}
 
           <div className="flex flex-col space-y-4">
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="auth-button"
-            >
+            <button type="submit" disabled={isLoading} className="auth-button">
               {isLoading ? (
                 <div className="flex items-center">
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  <svg
+                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
                   </svg>
                   Creating account...
                 </div>
@@ -124,7 +148,9 @@ export const SignUp: React.FC = () => {
             </button>
 
             <div className="text-center">
-              <span className="text-text-secondary">Already have an account? </span>
+              <span className="text-text-secondary">
+                Already have an account?{' '}
+              </span>
               <Link to="/signin" className="auth-link font-medium">
                 Sign in instead
               </Link>
@@ -134,4 +160,4 @@ export const SignUp: React.FC = () => {
       </div>
     </div>
   );
-}; 
+};

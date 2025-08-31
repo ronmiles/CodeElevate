@@ -18,13 +18,39 @@ export const ReviewSummary: React.FC<ReviewSummaryProps> = ({
     issue: comments.filter((comment) => comment.type === 'error').length,
   };
 
+  const isNewDashboard =
+    typeof document !== 'undefined' &&
+    document.documentElement.classList.contains('new-dashboard');
+
   return (
-    <div className="bg-gray-800 rounded-lg overflow-hidden border border-gray-700 mt-6 shadow-lg">
-      <div className="bg-gray-900 p-4 border-b border-gray-700 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white flex items-center">
+    <div
+      className={
+        isNewDashboard
+          ? 'bg-secondary-background rounded-lg overflow-hidden border border-border mt-6 shadow-sm'
+          : 'bg-gray-800 rounded-lg overflow-hidden border border-gray-700 mt-6 shadow-lg'
+      }
+    >
+      <div
+        className={
+          isNewDashboard
+            ? 'bg-background p-4 border-b border-border flex items-center justify-between'
+            : 'bg-gray-900 p-4 border-b border-gray-700 flex items-center justify-between'
+        }
+      >
+        <h3
+          className={
+            isNewDashboard
+              ? 'text-lg font-semibold text-text flex items-center'
+              : 'text-lg font-semibold text-white flex items-center'
+          }
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-5 w-5 mr-2 text-purple-500"
+            className={
+              isNewDashboard
+                ? 'h-5 w-5 mr-2 text-text-secondary'
+                : 'h-5 w-5 mr-2 text-purple-500'
+            }
             viewBox="0 0 20 20"
             fill="currentColor"
           >
@@ -42,29 +68,77 @@ export const ReviewSummary: React.FC<ReviewSummaryProps> = ({
       <div className="p-6">
         {/* Metrics */}
         <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="flex flex-col items-center bg-gray-900 p-4 rounded-lg border border-gray-700 hover:border-green-500 transition-all duration-200 shadow-sm">
+          <div
+            className={
+              isNewDashboard
+                ? 'flex flex-col items-center bg-background p-4 rounded-lg border border-border hover:border-border transition-all duration-200 shadow-sm'
+                : 'flex flex-col items-center bg-gray-900 p-4 rounded-lg border border-gray-700 hover:border-green-500 transition-all duration-200 shadow-sm'
+            }
+          >
             <div className="text-3xl font-bold text-green-500 mb-1">
               {commentCounts.strength}
             </div>
-            <div className="text-sm text-gray-300">Strengths</div>
+            <div
+              className={
+                isNewDashboard
+                  ? 'text-sm text-text-secondary'
+                  : 'text-sm text-gray-300'
+              }
+            >
+              Strengths
+            </div>
           </div>
-          <div className="flex flex-col items-center bg-gray-900 p-4 rounded-lg border border-gray-700 hover:border-blue-500 transition-all duration-200 shadow-sm">
+          <div
+            className={
+              isNewDashboard
+                ? 'flex flex-col items-center bg-background p-4 rounded-lg border border-border hover:border-border transition-all duration-200 shadow-sm'
+                : 'flex flex-col items-center bg-gray-900 p-4 rounded-lg border border-gray-700 hover:border-blue-500 transition-all duration-200 shadow-sm'
+            }
+          >
             <div className="text-3xl font-bold text-blue-500 mb-1">
               {commentCounts.improvement}
             </div>
-            <div className="text-sm text-gray-300">Improvements</div>
+            <div
+              className={
+                isNewDashboard
+                  ? 'text-sm text-text-secondary'
+                  : 'text-sm text-gray-300'
+              }
+            >
+              Improvements
+            </div>
           </div>
-          <div className="flex flex-col items-center bg-gray-900 p-4 rounded-lg border border-gray-700 hover:border-red-500 transition-all duration-200 shadow-sm">
+          <div
+            className={
+              isNewDashboard
+                ? 'flex flex-col items-center bg-background p-4 rounded-lg border border-border hover:border-border transition-all duration-200 shadow-sm'
+                : 'flex flex-col items-center bg-gray-900 p-4 rounded-lg border border-gray-700 hover:border-red-500 transition-all duration-200 shadow-sm'
+            }
+          >
             <div className="text-3xl font-bold text-red-500 mb-1">
               {commentCounts.issue}
             </div>
-            <div className="text-sm text-gray-300">Issues</div>
+            <div
+              className={
+                isNewDashboard
+                  ? 'text-sm text-text-secondary'
+                  : 'text-sm text-gray-300'
+              }
+            >
+              Issues
+            </div>
           </div>
         </div>
 
         {/* Summary */}
         <div className="space-y-6">
-          <div className="bg-gray-900 p-4 rounded-lg border-l-4 border-green-500">
+          <div
+            className={
+              isNewDashboard
+                ? 'bg-background p-4 rounded-lg border-l-4 border-green-500'
+                : 'bg-gray-900 p-4 rounded-lg border-l-4 border-green-500'
+            }
+          >
             <h4 className="text-md font-semibold text-green-500 mb-2 flex items-center">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -80,10 +154,24 @@ export const ReviewSummary: React.FC<ReviewSummaryProps> = ({
               </svg>
               Strengths
             </h4>
-            <p className="text-gray-300 leading-relaxed">{summary.strengths}</p>
+            <p
+              className={
+                isNewDashboard
+                  ? 'text-text-secondary leading-relaxed'
+                  : 'text-gray-300 leading-relaxed'
+              }
+            >
+              {summary.strengths}
+            </p>
           </div>
 
-          <div className="bg-gray-900 p-4 rounded-lg border-l-4 border-blue-500">
+          <div
+            className={
+              isNewDashboard
+                ? 'bg-background p-4 rounded-lg border-l-4 border-blue-500'
+                : 'bg-gray-900 p-4 rounded-lg border-l-4 border-blue-500'
+            }
+          >
             <h4 className="text-md font-semibold text-blue-500 mb-2 flex items-center">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -99,12 +187,24 @@ export const ReviewSummary: React.FC<ReviewSummaryProps> = ({
               </svg>
               Areas for Improvement
             </h4>
-            <p className="text-gray-300 leading-relaxed">
+            <p
+              className={
+                isNewDashboard
+                  ? 'text-text-secondary leading-relaxed'
+                  : 'text-gray-300 leading-relaxed'
+              }
+            >
               {summary.improvements}
             </p>
           </div>
 
-          <div className="bg-gray-900 p-4 rounded-lg border-l-4 border-purple-500">
+          <div
+            className={
+              isNewDashboard
+                ? 'bg-background p-4 rounded-lg border-l-4 border-purple-500'
+                : 'bg-gray-900 p-4 rounded-lg border-l-4 border-purple-500'
+            }
+          >
             <h4 className="text-md font-semibold text-purple-500 mb-2 flex items-center">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -120,7 +220,13 @@ export const ReviewSummary: React.FC<ReviewSummaryProps> = ({
               </svg>
               Overall Assessment
             </h4>
-            <p className="text-gray-300 leading-relaxed">
+            <p
+              className={
+                isNewDashboard
+                  ? 'text-text-secondary leading-relaxed'
+                  : 'text-gray-300 leading-relaxed'
+              }
+            >
               {summary.overallAssessment}
             </p>
           </div>

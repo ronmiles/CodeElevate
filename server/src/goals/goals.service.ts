@@ -166,7 +166,7 @@ export class GoalsService {
   }
 
   async findAll(userId: string) {
-    return this.prisma.learningGoal.findMany({
+    const goals = await this.prisma.learningGoal.findMany({
       where: {
         userId,
       },
@@ -185,6 +185,31 @@ export class GoalsService {
         createdAt: 'desc',
       },
     });
+
+    // Recalculate and persist status if out of sync
+    for (const goal of goals) {
+      const checkpoints = goal.roadmap?.checkpoints || [];
+      if (checkpoints.length === 0) continue;
+
+      const allCompleted = checkpoints.every((cp) => cp.status === 'COMPLETED');
+      const anyStarted = checkpoints.some((cp) => cp.status !== 'NOT_STARTED');
+
+      const computedStatus = allCompleted
+        ? 'COMPLETED'
+        : anyStarted
+        ? 'IN_PROGRESS'
+        : 'NOT_STARTED';
+
+      if (goal.status !== computedStatus) {
+        await this.prisma.learningGoal.update({
+          where: { id: goal.id },
+          data: { status: computedStatus },
+        });
+        (goal as any).status = computedStatus;
+      }
+    }
+
+    return goals;
   }
 
   async findOne(userId: string, goalId: string) {
@@ -208,6 +233,27 @@ export class GoalsService {
 
     if (!goal) {
       throw new NotFoundException(`Goal with ID ${goalId} not found`);
+    }
+
+    // Recalculate and persist status if out of sync
+    const checkpoints = goal.roadmap?.checkpoints || [];
+    if (checkpoints.length > 0) {
+      const allCompleted = checkpoints.every((cp) => cp.status === 'COMPLETED');
+      const anyStarted = checkpoints.some((cp) => cp.status !== 'NOT_STARTED');
+
+      const computedStatus = allCompleted
+        ? 'COMPLETED'
+        : anyStarted
+        ? 'IN_PROGRESS'
+        : 'NOT_STARTED';
+
+      if (goal.status !== computedStatus) {
+        await this.prisma.learningGoal.update({
+          where: { id: goal.id },
+          data: { status: computedStatus },
+        });
+        (goal as any).status = computedStatus;
+      }
     }
 
     return goal;
@@ -262,16 +308,26 @@ export class GoalsService {
           },
         },
       },
+      include: {
+        roadmap: true,
+      },
     });
 
     if (!checkpoint) {
       throw new NotFoundException('Checkpoint not found');
     }
 
-    return this.prisma.checkpoint.update({
+    const updated = await this.prisma.checkpoint.update({
       where: { id: checkpointId },
       data: { status },
     });
+
+    // Recompute and update goal status based on all checkpoint statuses
+    if (checkpoint.roadmap && checkpoint.roadmap.goalId) {
+      await this.updateGoalStatusFromCheckpoints(checkpoint.roadmap.goalId);
+    }
+
+    return updated;
   }
 
   async enhanceDescription(
@@ -279,5 +335,37 @@ export class GoalsService {
     description?: string
   ): Promise<{ description: string }> {
     return this.goalsLlmService.enhanceDescription(title, description);
+  }
+
+  // Helper: recompute goal status from its checkpoints
+  private async updateGoalStatusFromCheckpoints(goalId: string): Promise<void> {
+    // Get all checkpoints for the goal and their statuses
+    const checkpoints = await this.prisma.checkpoint.findMany({
+      where: {
+        roadmap: {
+          goalId,
+        },
+      },
+      select: { status: true },
+    });
+
+    if (checkpoints.length === 0) {
+      return;
+    }
+
+    const allCompleted = checkpoints.every((cp) => cp.status === 'COMPLETED');
+    const anyStarted = checkpoints.some((cp) => cp.status !== 'NOT_STARTED');
+
+    const newStatus = allCompleted
+      ? 'COMPLETED'
+      : anyStarted
+      ? 'IN_PROGRESS'
+      : 'NOT_STARTED';
+
+    // Update only if changed
+    await this.prisma.learningGoal.update({
+      where: { id: goalId },
+      data: { status: newStatus },
+    });
   }
 }
