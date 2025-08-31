@@ -161,13 +161,13 @@ export const NewDashboard: React.FC = () => {
             <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate('/dashboard/new-goal')}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-primary hover:bg-primary-hover transition-all duration-200"
+                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-primary hover:bg-primary-hover transition-all duration-200 z-10"
               >
                 Add New Goal
               </button>
               <button
                 onClick={disableNewDesign}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-text-secondary hover:text-text hover:bg-background border border-border transition-all duration-200"
+                className="px-4 py-2 bg-background rounded-lg text-sm font-medium text-text-secondary hover:text-text hover:bg-background-hover border border-border transition-all duration-200 z-10"
               >
                 Return to Classic Design
               </button>
