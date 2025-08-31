@@ -25,8 +25,8 @@ export class LLMService {
     const groqConfig: LLMConfig = {
       apiKey: this.configService.get<string>('GROQ_API_KEY')!,
       model:
-        this.configService.get<string>('GROQ_MODEL') || 'mixtral-8x7b-32768',
-      temperature: this.configService.get<number>('GROQ_TEMPERATURE') || 0.7,
+        this.configService.get<string>('GROQ_MODEL') || 'openai/gpt-oss-120b',
+      temperature: this.configService.get<number>('GROQ_TEMPERATURE') || 0,
       maxTokens: ensureInteger(
         this.configService.get<number>('GROQ_MAX_TOKENS'),
         2000

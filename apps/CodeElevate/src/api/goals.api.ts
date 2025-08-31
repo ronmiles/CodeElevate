@@ -195,3 +195,17 @@ export const goalsApi = {
     }
   },
 };
+
+export const insightsApi = {
+  async getDashboardInsights(token: string): Promise<{
+    strongPoints: string[];
+    skillsToStrengthen: string[];
+  }> {
+    const response = await api.get('/insights/dashboard', {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  },
+};
