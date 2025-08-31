@@ -429,164 +429,172 @@ export const LearningGoalPage: React.FC = () => {
   return (
     <>
       <style>{scrollbarStyles}</style>
-      <div className="min-h-screen bg-background flex flex-col">
-        <Navbar />
-        <div className="flex flex-1 overflow-hidden">
-          <LearningPathSidebar
-            checkpoints={goal.roadmap?.checkpoints || []}
-            checkpointExercisesMap={checkpointExercisesMap}
-            selectedCheckpointId={selectedCheckpoint?.id || null}
-            onCheckpointClick={handleCheckpointClick}
-          />
-
-          <div
-            className="flex-1 p-6 m-3 ml-3 rounded-lg overflow-y-auto"
-            style={{
-              height: 'calc(100vh - 64px)',
-            }}
-          >
-            {selectedCheckpoint ? (
-              <>
-                <div className="mb-8">
-                  <h1 className="text-3xl font-bold text-text mb-4">
-                    {selectedCheckpoint.title}
-                  </h1>
-                  <p className="text-text-secondary">
-                    {selectedCheckpoint.description}
-                  </p>
-                </div>
-
-                {/* Content Toggle */}
-                <ContentToggle
-                  activeContent={activeContent}
-                  onToggle={setActiveContent}
-                  hasLearningMaterial={!!learningMaterial}
-                  exerciseCount={exercises?.length || 0}
-                  completedExercises={
-                    exercises?.filter(
-                      (ex) =>
-                        ex.progress &&
-                        ex.progress.length > 0 &&
-                        ex.progress[0].grade !== undefined &&
-                        ex.progress[0].grade >= 70
-                    ).length || 0
-                  }
-                />
-
-                {/* Content Area */}
-                {activeContent === 'material' ? (
-                  <div>
-                    {learningMaterial ? (
-                      <LearningMaterialView
-                        learningMaterial={learningMaterial}
-                        isLoading={isLoadingLearningMaterial}
-                      />
-                    ) : (
-                      <div className="text-center py-12">
-                        <div className="mb-4">
-                          <BookOpen className="w-16 h-16 mx-auto text-text-secondary mb-4" />
-                          <h3 className="text-lg font-semibold text-text mb-2">
-                            No Learning Material Yet
-                          </h3>
-                          <p className="text-text-secondary mb-6">
-                            Generate learning material to help you understand
-                            this checkpoint before tackling the exercises.
-                          </p>
-                        </div>
-                        <button
-                          onClick={() =>
-                            generateLearningMaterialMutation.mutate()
-                          }
-                          disabled={generateLearningMaterialMutation.isPending}
-                          className="bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
-                        >
-                          {generateLearningMaterialMutation.isPending ? (
-                            <>
-                              <div className="inline-block w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                              Generating...
-                            </>
-                          ) : (
-                            'Generate Learning Material'
-                          )}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div>
-                    {exercises && exercises.length > 0 ? (
-                      <ExercisesList
-                        exercises={exercises}
-                        isLoading={isLoadingExercises}
-                        isPendingGeneration={generateExerciseMutation.isPending}
-                        onGenerateExercise={() =>
-                          generateExerciseMutation.mutate()
-                        }
-                        containerRef={containerRef}
-                        onScroll={scroll}
-                      />
-                    ) : (
-                      <div className="text-center py-12">
-                        <div className="mb-4">
-                          <Code2 className="w-16 h-16 mx-auto text-text-secondary mb-4" />
-                          <h3 className="text-lg font-semibold text-text mb-2">
-                            No Exercises Yet
-                          </h3>
-                          <p className="text-text-secondary mb-6">
-                            Generate exercises to practice the concepts you've
-                            learned in this checkpoint.
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => generateExerciseMutation.mutate()}
-                          disabled={generateExerciseMutation.isPending}
-                          className="bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
-                        >
-                          {generateExerciseMutation.isPending ? (
-                            <>
-                              <div className="inline-block w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                              Generating...
-                            </>
-                          ) : (
-                            'Generate Exercise'
-                          )}
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="h-full flex items-center justify-center text-text-secondary">
-                Select a checkpoint from the sidebar to view its exercises
-              </div>
-            )}
-          </div>
+      <div className='min-h-screen'>
+        <div className="bg-background">
+          <Navbar />
         </div>
+        <div className="bg-background flex flex-col">
+          <div className="flex flex-1 overflow-hidden">
+            <LearningPathSidebar
+              checkpoints={goal.roadmap?.checkpoints || []}
+              checkpointExercisesMap={checkpointExercisesMap}
+              selectedCheckpointId={selectedCheckpoint?.id || null}
+              onCheckpointClick={handleCheckpointClick}
+            />
 
-        <ExerciseProvider>
-          <ExerciseDetailsOverlay
-            open={modalOpen}
-            onClose={() => setModalOpen(false)}
-            exercise={selectedExercise}
-          />
-        </ExerciseProvider>
+            <div
+              className="flex-1 p-6 m-3 ml-3 rounded-lg overflow-y-auto"
+              style={{
+                height: 'calc(100vh - 64px)',
+              }}
+            >
+              {selectedCheckpoint ? (
+                <>
+                  <div className="mb-8">
+                    <h1 className="text-3xl font-bold text-text mb-4">
+                      {selectedCheckpoint.title}
+                    </h1>
+                    <p className="text-text-secondary">
+                      {selectedCheckpoint.description}
+                    </p>
+                  </div>
 
-        <Snackbar
-          open={toast.open}
-          autoHideDuration={3000}
-          onClose={() => setToast((prev) => ({ ...prev, open: false }))}
-        >
-          <Alert
-            severity={toast.severity}
+                  {/* Content Toggle */}
+                  <ContentToggle
+                    activeContent={activeContent}
+                    onToggle={setActiveContent}
+                    hasLearningMaterial={!!learningMaterial}
+                    exerciseCount={exercises?.length || 0}
+                    completedExercises={
+                      exercises?.filter(
+                        (ex) =>
+                          ex.progress &&
+                          ex.progress.length > 0 &&
+                          ex.progress[0].grade !== undefined &&
+                          ex.progress[0].grade >= 70
+                      ).length || 0
+                    }
+                  />
+
+                  {/* Content Area */}
+                  {activeContent === 'material' ? (
+                    <div>
+                      {learningMaterial ? (
+                        <LearningMaterialView
+                          learningMaterial={learningMaterial}
+                          isLoading={isLoadingLearningMaterial}
+                        />
+                      ) : (
+                        <div className="text-center py-12">
+                          <div className="mb-4">
+                            <BookOpen className="w-16 h-16 mx-auto text-text-secondary mb-4" />
+                            <h3 className="text-lg font-semibold text-text mb-2">
+                              No Learning Material Yet
+                            </h3>
+                            <p className="text-text-secondary mb-6">
+                              Generate learning material to help you understand
+                              this checkpoint before tackling the exercises.
+                            </p>
+                          </div>
+                          <button
+                            onClick={() =>
+                              generateLearningMaterialMutation.mutate()
+                            }
+                            disabled={
+                              generateLearningMaterialMutation.isPending
+                            }
+                            className="bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
+                          >
+                            {generateLearningMaterialMutation.isPending ? (
+                              <>
+                                <div className="inline-block w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                Generating...
+                              </>
+                            ) : (
+                              'Generate Learning Material'
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div>
+                      {exercises && exercises.length > 0 ? (
+                        <ExercisesList
+                          exercises={exercises}
+                          isLoading={isLoadingExercises}
+                          isPendingGeneration={
+                            generateExerciseMutation.isPending
+                          }
+                          onGenerateExercise={() =>
+                            generateExerciseMutation.mutate()
+                          }
+                          containerRef={containerRef}
+                          onScroll={scroll}
+                        />
+                      ) : (
+                        <div className="text-center py-12">
+                          <div className="mb-4">
+                            <Code2 className="w-16 h-16 mx-auto text-text-secondary mb-4" />
+                            <h3 className="text-lg font-semibold text-text mb-2">
+                              No Exercises Yet
+                            </h3>
+                            <p className="text-text-secondary mb-6">
+                              Generate exercises to practice the concepts you've
+                              learned in this checkpoint.
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => generateExerciseMutation.mutate()}
+                            disabled={generateExerciseMutation.isPending}
+                            className="bg-primary hover:bg-primary-dark text-white px-6 py-3 rounded-lg font-medium transition-colors disabled:opacity-50"
+                          >
+                            {generateExerciseMutation.isPending ? (
+                              <>
+                                <div className="inline-block w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                Generating...
+                              </>
+                            ) : (
+                              'Generate Exercise'
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="h-full flex items-center justify-center text-text-secondary">
+                  Select a checkpoint from the sidebar to view its exercises
+                </div>
+              )}
+            </div>
+          </div>
+
+          <ExerciseProvider>
+            <ExerciseDetailsOverlay
+              open={modalOpen}
+              onClose={() => setModalOpen(false)}
+              exercise={selectedExercise}
+            />
+          </ExerciseProvider>
+
+          <Snackbar
+            open={toast.open}
+            autoHideDuration={3000}
             onClose={() => setToast((prev) => ({ ...prev, open: false }))}
-            className={`${
-              toast.severity === 'success' ? 'bg-success' : 'bg-error'
-            } text-white`}
           >
-            {toast.message}
-          </Alert>
-        </Snackbar>
+            <Alert
+              severity={toast.severity}
+              onClose={() => setToast((prev) => ({ ...prev, open: false }))}
+              className={`${
+                toast.severity === 'success' ? 'bg-success' : 'bg-error'
+              } text-white`}
+            >
+              {toast.message}
+            </Alert>
+          </Snackbar>
+        </div>
       </div>
     </>
   );

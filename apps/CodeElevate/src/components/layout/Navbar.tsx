@@ -3,23 +3,29 @@ import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '../ThemeToggle';
 import { useAuth } from '../../contexts/AuthContext';
+import logo from '../../assets/logo.svg';
 
 export const Navbar: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   const { signOut } = useAuth();
+  const isNew =
+    typeof window !== 'undefined' &&
+    localStorage.getItem('dashboard:useNew') === 'true';
 
-  const navItems = [
-    { path: '/dashboard', label: 'Dashboard' },
-    { path: '/progress', label: 'Progress' },
-    { path: '/settings', label: 'Settings' },
-  ];
+  const outerClasses = isNew
+    ? 'bg-secondary-background border-b border-border rounded-full mt-3 max-w-5xl mx-auto'
+    : 'bg-secondary-background border-b border-border';
+
+  const innerClasses = isNew
+    ? 'max-w-6xl mx-auto px-4 sm:px-6 lg:px-8'
+    : 'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8';
 
   const isActivePath = (path: string) => location.pathname === path;
 
   return (
-    <nav className="bg-secondary-background border-b border-border">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <nav className={outerClasses}>
+      <div className={innerClasses}>
         <div className="flex justify-between h-16">
           {/* Logo and Brand */}
           <div className="flex items-center">
@@ -28,11 +34,11 @@ export const Navbar: React.FC = () => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
-                {/* <img
-                  src="/logo.svg"
+                <img
+                  src={logo}
                   alt="CodeElevate Logo"
-                  className="h-8 w-8"
-                /> */}
+                  className="h-7 w-7 mr-1"
+                />
               </motion.div>
               <span className="text-xl font-bold text-text">CodeElevate</span>
             </Link>
@@ -40,29 +46,7 @@ export const Navbar: React.FC = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden sm:flex sm:items-center sm:space-x-8">
-            {navItems.map(({ path, label }) => (
-              <Link
-                key={path}
-                to={path}
-                className={`relative px-3 py-2 text-sm font-medium transition-colors duration-200 ${
-                  isActivePath(path)
-                    ? 'text-primary'
-                    : 'text-text-secondary hover:text-text'
-                }`}
-              >
-                {label}
-                {isActivePath(path) && (
-                  <motion.div
-                    layoutId="activeNavItem"
-                    className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary"
-                    initial={false}
-                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                  />
-                )}
-              </Link>
-            ))}
             <div className="ml-2 flex items-center space-x-3">
-              <ThemeToggle />
               <button
                 onClick={signOut}
                 className="px-4 py-2 rounded-lg text-sm font-medium text-text-secondary hover:text-text hover:bg-background transition-all duration-200"
@@ -123,20 +107,6 @@ export const Navbar: React.FC = () => {
             className="sm:hidden border-t border-border overflow-hidden"
           >
             <div className="px-2 pt-2 pb-3 space-y-1">
-              {navItems.map(({ path, label }) => (
-                <Link
-                  key={path}
-                  to={path}
-                  className={`block px-3 py-2 rounded-md text-base font-medium transition-colors duration-200 ${
-                    isActivePath(path)
-                      ? 'text-primary bg-background'
-                      : 'text-text-secondary hover:text-text hover:bg-background'
-                  }`}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  {label}
-                </Link>
-              ))}
               <button
                 onClick={signOut}
                 className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-text-secondary hover:text-text hover:bg-background transition-all duration-200"
@@ -149,4 +119,4 @@ export const Navbar: React.FC = () => {
       </AnimatePresence>
     </nav>
   );
-}; 
+};

@@ -34,7 +34,7 @@ export const LearningPathSidebar: React.FC<LearningPathSidebarProps> = ({
     <div
       className="w-80 bg-secondary-background rounded-lg m-3 mr-0 flex-shrink-0 flex flex-col"
       style={{
-        height: 'calc(100vh - 64px)',
+        height: 'calc(100vh - 100px)',
       }}
     >
       <div className="p-4 border-b border-border">

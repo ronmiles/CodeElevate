@@ -13,6 +13,7 @@ import {
 import { Navbar } from '../layout/Navbar';
 import { SparkleIcon } from '../common/SparkleIcon';
 import { CustomizationQuestions } from './CustomizationQuestions';
+const LS_KEY = 'dashboard:useNew';
 
 type GoalCreationStep = 'form' | 'questions';
 
@@ -308,12 +309,23 @@ export const Dashboard: React.FC = () => {
           <div className="mb-6 flex justify-between items-center">
             <h2 className="text-2xl font-bold text-text">Learning Goals</h2>
             {!isAddingGoal && (
-              <button
-                onClick={() => setIsAddingGoal(true)}
-                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-primary hover:bg-primary-hover transition-all duration-200"
-              >
-                Add New Goal
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    localStorage.setItem(LS_KEY, 'true');
+                    window.location.reload();
+                  }}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-text-secondary hover:text-text hover:bg-background border border-border transition-all duration-200"
+                >
+                  Try the new dashboard
+                </button>
+                <button
+                  onClick={() => setIsAddingGoal(true)}
+                  className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-primary hover:bg-primary-hover transition-all duration-200"
+                >
+                  Add New Goal
+                </button>
+              </div>
             )}
           </div>
 
@@ -380,7 +392,7 @@ export const Dashboard: React.FC = () => {
                   </h3>
                   {goal.description && (
                     <p className="text-text-secondary mb-4 text-sm">
-                      {goal.description}
+                      {goal.description.slice(0, 200)}...
                     </p>
                   )}
                   {goal.deadline && (

@@ -10,6 +10,7 @@ import {
 import { SignIn } from '../components/auth/SignIn';
 import { SignUp } from '../components/auth/SignUp';
 import { Dashboard } from '../components/dashboard/Dashboard';
+import { DashboardEntry } from '../components/dashboard/DashboardEntry';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import { LearningGoalPage } from '../pages/LearningGoalPage';
@@ -42,7 +43,7 @@ export function App() {
                 path="/dashboard"
                 element={
                   <PrivateRoute>
-                    <Dashboard />
+                    <DashboardEntry />
                   </PrivateRoute>
                 }
               />
