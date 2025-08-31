@@ -7,6 +7,7 @@ import {
   ensureTemperature,
 } from '../interfaces/llm.interface';
 import { Injectable } from '@nestjs/common';
+import { jsonrepair } from 'jsonrepair';
 
 @Injectable()
 export class GroqProvider implements LLMProvider {
@@ -16,8 +17,8 @@ export class GroqProvider implements LLMProvider {
   constructor(config: LLMConfig) {
     this.config = {
       model: 'mixtral-8x7b-32768',
-      temperature: 0.7,
-      maxTokens: 2000,
+      temperature: 0.1,
+      maxTokens: 4000,
       ...config,
     };
 
@@ -49,21 +50,18 @@ export class GroqProvider implements LLMProvider {
   }
 
   async generateJson<T>(prompt: string, schema: string): Promise<T> {
-    const systemPrompt = `You are a JSON generator. Your task is to generate valid JSON that strictly follows this schema:
+    const systemPrompt = `You are a JSON generator. Your task is to generate valid RFC 8259 JSON that strictly follows this schema:
 
 ${schema}
 
 Important rules:
-1. Respond ONLY with the JSON object
+1. Respond ONLY with the JSON object (no prose, no prefixes/suffixes)
 2. Do not include any explanations or markdown formatting
-3. Ensure all required fields are present
-4. Follow the exact types specified in the schema
+3. Do NOT use code fences (no triple backticks)
+4. Ensure all required fields are present and types are correct
 5. Do not add any fields not defined in the schema
-
-Example of correct response format:
-{
-  "field": "value"
-}`;
+6. All strings MUST be valid JSON strings: escape embedded quotes (\") and newlines as \n
+Return a single minified JSON object.`;
 
     try {
       const completion = await this.groq.chat.completions.create({
@@ -78,22 +76,34 @@ Example of correct response format:
 
       const content = completion.choices[0].message.content || '{}';
 
-      // Clean the response to ensure it only contains JSON
-      const jsonStr = content
-        .replace(/^```json\n?|\n?```$/g, '') // Remove code blocks
-        .replace(/^\s*\{/, '{') // Ensure it starts with {
-        .replace(/\}\s*$/, '}') // Ensure it ends with }
+      // Normalize and attempt strict parse first
+      const cleaned = content
+        .replace(/^```[a-zA-Z]*\n?/, '')
+        .replace(/\n?```$/, '')
         .trim();
 
+      const tryParse = (text: string): T => JSON.parse(text) as T;
+
       try {
-        return JSON.parse(jsonStr) as T;
-      } catch (parseError) {
-        // If parsing fails, try to extract JSON from the response
-        const jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          return JSON.parse(jsonMatch[0]) as T;
+        return tryParse(cleaned);
+      } catch (_) {
+        // Attempt to repair common JSON issues (unterminated strings, stray commas, etc.)
+        try {
+          const repaired = jsonrepair(cleaned);
+          return tryParse(repaired);
+        } catch (_) {
+          // Attempt to extract the largest JSON object and repair
+          const match = cleaned.match(/\{[\s\S]*\}/);
+          if (match) {
+            try {
+              return tryParse(jsonrepair(match[0]));
+            } catch (e) {
+              throw e;
+            }
+          }
+          // Re-throw last error if nothing worked
+          throw new Error('Unable to parse or repair JSON response');
         }
-        throw parseError;
       }
     } catch (error) {
       throw new Error(`Groq JSON Generation Error: ${error.message}`);

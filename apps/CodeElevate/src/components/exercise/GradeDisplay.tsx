@@ -21,8 +21,18 @@ const GradeDisplay: React.FC<GradeDisplayProps> = ({ grade }) => {
     return 'Needs improvement';
   };
 
+  const isNewDashboard =
+    typeof document !== 'undefined' &&
+    document.documentElement.classList.contains('new-dashboard');
+
   return (
-    <div className="flex items-center p-4 bg-gray-800 rounded-lg border border-gray-700 mb-4">
+    <div
+      className={
+        isNewDashboard
+          ? 'flex items-center p-4 bg-secondary-background rounded-lg border border-border mb-4 shadow-sm'
+          : 'flex items-center p-4 bg-gray-800 rounded-lg border border-gray-700 mb-4'
+      }
+    >
       <div className="relative mr-6">
         <div
           className={`w-20 h-20 rounded-full flex items-center justify-center ${getGradeColor()} text-white text-3xl font-bold`}
@@ -31,9 +41,25 @@ const GradeDisplay: React.FC<GradeDisplayProps> = ({ grade }) => {
         </div>
       </div>
       <div className="flex-1">
-        <h3 className="text-xl font-semibold text-white mb-1">Your Grade</h3>
-        <p className="text-gray-300">{getGradeMessage()}</p>
-        <p className="text-gray-400 text-sm mt-2">
+        <h3
+          className={
+            isNewDashboard
+              ? 'text-xl font-semibold text-text mb-1'
+              : 'text-xl font-semibold text-white mb-1'
+          }
+        >
+          Your Grade
+        </h3>
+        <p className={isNewDashboard ? 'text-text-secondary' : 'text-gray-300'}>
+          {getGradeMessage()}
+        </p>
+        <p
+          className={
+            isNewDashboard
+              ? 'text-text-secondary text-sm mt-2'
+              : 'text-gray-400 text-sm mt-2'
+          }
+        >
           This grade is based on code quality, correctness, and best practices.
         </p>
       </div>

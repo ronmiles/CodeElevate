@@ -14,6 +14,31 @@
   --error: #EF4444;
 }
 
+/* New dashboard theme (feature-flag enabled) */
+html.new-dashboard {
+  --background: #19181A;
+  --secondary-background: rgb(33, 32, 34);
+}
+
+/* Apply background logo to all full-screen backgrounds under the new design */
+html.new-dashboard .min-h-screen.bg-background {
+  background-image: url('./assets/background-logo.svg');
+  background-repeat: no-repeat;
+  background-position: right -120px bottom -80px;
+  background-size: 60%;
+}
+
+/* Fallback: apply background at body level so all routes inherit it */
+html.new-dashboard body {
+  background-image: url('./assets/background-logo.svg');
+  background-repeat: no-repeat;
+  background-position: right -120px bottom -80px;
+  background-size: 60%;
+}
+
+/* Apply background logo to full-screen containers under the new design */
+/* background logo handled by App overlay when new design is enabled */
+
 body {
   background-color: var(--background);
   color: var(--text);
@@ -53,7 +78,7 @@ body {
 }
 
 .markdown-content code {
-  @apply px-1 py-0.5 bg-gray-800 rounded text-xs;
+  @apply px-1 py-0.5 bg-gray-800 rounded text-text text-xs;
 }
 
 .markdown-content pre {
@@ -61,7 +86,7 @@ body {
 }
 
 .markdown-content pre code {
-  @apply bg-transparent p-0 block text-xs;
+  @apply bg-transparent p-0 block text-text text-xs;
 }
 
 .markdown-content p {
@@ -116,4 +141,9 @@ body {
 
 .markdown-content table th {
   @apply bg-gray-800;
+}
+
+/* Feature flag: new dashboard – code block background */
+html.new-dashboard .markdown-content pre {
+  background-color: #151718;
 }

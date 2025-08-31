@@ -276,6 +276,43 @@ export class ExercisesService {
       where: { id: checkpointId },
       data: { status: newStatus },
     });
+
+    // Recompute and update the parent goal status based on all checkpoint statuses
+    const checkpoint = await this.prisma.checkpoint.findUnique({
+      where: { id: checkpointId },
+      include: { roadmap: true },
+    });
+
+    if (checkpoint?.roadmap?.goalId) {
+      const checkpoints = await this.prisma.checkpoint.findMany({
+        where: {
+          roadmap: {
+            goalId: checkpoint.roadmap.goalId,
+          },
+        },
+        select: { status: true },
+      });
+
+      if (checkpoints.length > 0) {
+        const allCompleted = checkpoints.every(
+          (cp) => cp.status === 'COMPLETED'
+        );
+        const anyStarted = checkpoints.some(
+          (cp) => cp.status !== 'NOT_STARTED'
+        );
+
+        const goalStatus = allCompleted
+          ? 'COMPLETED'
+          : anyStarted
+          ? 'IN_PROGRESS'
+          : 'NOT_STARTED';
+
+        await this.prisma.learningGoal.update({
+          where: { id: checkpoint.roadmap.goalId },
+          data: { status: goalStatus },
+        });
+      }
+    }
   }
 
   async getUserProgress(userId: string) {
@@ -376,12 +413,44 @@ export class ExercisesService {
     }
 
     try {
-      return await this.exercisesLlmService.reviewCode(
+      const review = await this.exercisesLlmService.reviewCode(
         exercise.title,
         exercise.description,
         exercise.language || 'code',
         code
       );
+
+      // Persist review summary and comments into user's progress record
+      const updateData: any = {
+        reviewComments: review.comments,
+        reviewSummary: review.summary,
+        grade: typeof review.score === 'number' ? review.score : undefined,
+        status: undefined,
+      };
+
+      const createData: any = {
+        userId,
+        exerciseId,
+        status: 'IN_PROGRESS',
+        code,
+        reviewComments: review.comments,
+        reviewSummary: review.summary,
+        grade: typeof review.score === 'number' ? review.score : undefined,
+        attempts: 1,
+      };
+
+      await this.prisma.progress.upsert({
+        where: {
+          userId_exerciseId: {
+            userId,
+            exerciseId,
+          },
+        },
+        update: updateData,
+        create: createData,
+      });
+
+      return review;
     } catch (error) {
       console.error(error);
       throw new BadRequestException(
