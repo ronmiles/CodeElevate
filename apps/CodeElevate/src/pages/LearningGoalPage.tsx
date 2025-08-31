@@ -429,7 +429,7 @@ export const LearningGoalPage: React.FC = () => {
   return (
     <>
       <style>{scrollbarStyles}</style>
-      <div className='min-h-screen'>
+      <div className="min-h-screen">
         <div className="bg-background">
           <Navbar />
         </div>

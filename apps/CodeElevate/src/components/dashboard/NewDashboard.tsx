@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 
 import logo from '../../assets/logo.svg';
 import { getIsNewDesign, setIsNewDesign } from '../../utils/featureFlags';
+import { getLanguageAbbreviation } from '../../utils/languageAbbreviations';
 
 export const NewDashboard: React.FC = () => {
   const { token } = useAuth();
@@ -221,7 +222,7 @@ export const NewDashboard: React.FC = () => {
                         {goal.title}
                       </h3>
                       <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-xs text-white">
-                        {goal.language?.slice(0, 2).toUpperCase()}
+                        {getLanguageAbbreviation(goal.language)}
                       </div>
                     </div>
                     {goal.description && (
