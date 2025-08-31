@@ -100,7 +100,11 @@ export class LearningMaterialsLLMService {
       7. Ensure everything needed to complete the exercises is covered
       8. Use markdown formatting for better readability
       9. Estimated time should be realistic (5-15 minutes)
-      10. DO NOT include any explanatory text outside the JSON structure`;
+      
+      Output Rules:
+      - Respond ONLY with a single JSON object (no prose)
+      - Do NOT use code fences (no triple backticks)
+      - All strings must be valid JSON strings: escape quotes (\") and newlines as \n`;
 
     const prompt = `${systemPrompt}
 

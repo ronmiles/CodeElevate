@@ -25,8 +25,8 @@ export class LLMService {
     const groqConfig: LLMConfig = {
       apiKey: this.configService.get<string>('GROQ_API_KEY')!,
       model:
-        this.configService.get<string>('GROQ_MODEL') || 'mixtral-8x7b-32768',
-      temperature: this.configService.get<number>('GROQ_TEMPERATURE') || 0.7,
+        this.configService.get<string>('GROQ_MODEL') || 'openai/gpt-oss-120b',
+      temperature: this.configService.get<number>('GROQ_TEMPERATURE') || 0,
       maxTokens: ensureInteger(
         this.configService.get<number>('GROQ_MAX_TOKENS'),
         2000
@@ -87,21 +87,42 @@ export class LLMService {
     schema: string,
     provider?: LLMProviderType
   ) {
+    const primaryProvider: LLMProviderType = provider || this.defaultProvider;
+    const fallbackProvider: LLMProviderType =
+      primaryProvider === 'groq' ? 'openai' : 'groq';
+
     try {
-      return await this.getProvider(provider).generateJson<T>(prompt, schema);
+      return await this.getProvider(primaryProvider).generateJson<T>(
+        prompt,
+        schema
+      );
     } catch (error) {
-      // Enhance error message for better client-side handling
-      if (error.message?.includes('JSON')) {
-        throw new Error(`JSON formatting error: ${error.message}`);
+      const message = error?.message || '';
+
+      // If JSON formatting/parsing failed, try fallback provider once
+      if (message.includes('JSON')) {
+        try {
+          return await this.getProvider(fallbackProvider).generateJson<T>(
+            prompt,
+            schema
+          );
+        } catch (fallbackError) {
+          throw new Error(
+            `JSON formatting error: ${message} | Fallback error: ${fallbackError?.message}`
+          );
+        }
       }
 
-      if (error.message?.includes('timeout') || error.code === 'ETIMEDOUT') {
+      if (message.includes('timeout') || (error as any).code === 'ETIMEDOUT') {
         throw new Error(
           'Request to AI service timed out. Please try again later.'
         );
       }
 
-      if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+      if (
+        (error as any).code === 'ECONNREFUSED' ||
+        (error as any).code === 'ENOTFOUND'
+      ) {
         throw new Error(
           'Failed to connect to AI service. Service may be unavailable.'
         );

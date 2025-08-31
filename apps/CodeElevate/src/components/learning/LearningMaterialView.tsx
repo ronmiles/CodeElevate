@@ -47,7 +47,7 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
             if (isInline) {
               return (
                 <code
-                  className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-sm font-mono"
+                  className="px-1 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-sm font-mono text-text"
                   {...props}
                 >
                   {children}

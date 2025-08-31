@@ -23,6 +23,7 @@ model User {
   learningGoals LearningGoal[]
   exercises     Exercise[]
   progress      Progress[]
+  dashboardInsight DashboardInsight?
 }
 
 model UserProfile {
@@ -126,12 +127,24 @@ model Progress {
   status      ProgressStatus
   code        String?   @db.Text
   grade       Int?
+  reviewComments Json?
+  reviewSummary  Json?
   attempts    Int       @default(0)
   completedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
   @@unique([userId, exerciseId], name: "userId_exerciseId")
+}
+
+model DashboardInsight {
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id])
+  strongPoints         Json
+  skillsToStrengthen   Json
+  generatedAt          DateTime @default(now())
+  updatedAt            DateTime @updatedAt
 }
 
 enum SkillLevel {

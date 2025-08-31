@@ -101,12 +101,12 @@ export class GoalsLLMService {
       "language": "string"
     }`;
 
-    const response = await this.llmService.generateJson<{ language: string }>(
+    const response = await this.llmService.generateJson<{ language?: string }>(
       prompt,
       schema
     );
 
-    const detectedLanguage = response.language?.trim();
+    const detectedLanguageRaw = (response?.language ?? '').toString().trim();
 
     const languageMap: Record<string, string> = {
       javascript: 'JavaScript',
@@ -130,7 +130,17 @@ export class GoalsLLMService {
       sql: 'SQL',
     };
 
-    return languageMap[detectedLanguage.toLowerCase()] ?? 'JavaScript';
+    const normalized = detectedLanguageRaw.toLowerCase();
+
+    if (!normalized) {
+      return 'JavaScript';
+    }
+
+    // Handle common aliases
+    if (normalized === 'js') return 'JavaScript';
+    if (normalized === 'ts') return 'TypeScript';
+
+    return languageMap[normalized] ?? 'JavaScript';
   }
 
   async generateRoadmap(

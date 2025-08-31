@@ -1,6 +1,6 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { goalsApi, LearningGoal } from '../../api/goals.api';
+import { goalsApi, LearningGoal, insightsApi } from '../../api/goals.api';
 import { exercisesApi, UserProgressResponse } from '../../api/exercises.api';
 import { useAuth } from '../../contexts/AuthContext';
 import { Navbar } from '../layout/Navbar';
@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 
 import logo from '../../assets/logo.svg';
 import { getIsNewDesign, setIsNewDesign } from '../../utils/featureFlags';
+import { getLanguageAbbreviation } from '../../utils/languageAbbreviations';
 
 export const NewDashboard: React.FC = () => {
   const { token } = useAuth();
@@ -26,7 +27,23 @@ export const NewDashboard: React.FC = () => {
     enabled: !!token,
   });
 
+  const { data: aiInsights, isLoading: isInsightsLoading } = useQuery({
+    queryKey: ['dashboardInsights'],
+    queryFn: () => insightsApi.getDashboardInsights(token!),
+    enabled: !!token,
+    staleTime: 1000 * 60 * 30,
+  });
+
   const { strongPoints, skillsToImprove } = React.useMemo(() => {
+    if (
+      aiInsights &&
+      (aiInsights.strongPoints.length || aiInsights.skillsToStrengthen.length)
+    ) {
+      return {
+        strongPoints: aiInsights.strongPoints.slice(0, 3),
+        skillsToImprove: aiInsights.skillsToStrengthen.slice(0, 3),
+      };
+    }
     const result = {
       strongPoints: [] as string[],
       skillsToImprove: [] as string[],
@@ -205,7 +222,7 @@ export const NewDashboard: React.FC = () => {
                         {goal.title}
                       </h3>
                       <div className="h-8 w-8 rounded-full bg-white/10 flex items-center justify-center text-xs text-white">
-                        {goal.language?.slice(0, 2).toUpperCase()}
+                        {getLanguageAbbreviation(goal.language)}
                       </div>
                     </div>
                     {goal.description && (
@@ -245,15 +262,45 @@ export const NewDashboard: React.FC = () => {
 
               <div className="mt-10 grid gap-6 md:grid-cols-2">
                 <div className="rounded-2xl bg-primary-background/80 backdrop-blur border border-border p-6">
-                  <div className="text-text font-semibold mb-3">
-                    Your Strong Points
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-text font-semibold">
+                      Your Strong Points
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] border border-border text-text-secondary flex items-center gap-1">
+                      <svg
+                        className="h-3 w-3 text-white"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path d="M12 2l2.5 5.5L20 10l-5.5 2.5L12 18l-2.5-5.5L4 10l5.5-2.5L12 2z" />
+                      </svg>
+                      <span>AI</span>
+                    </span>
                   </div>
-                  {strongPoints.length > 0 ? (
-                    <ul className="list-disc pl-5 text-sm text-text-secondary space-y-2">
-                      {strongPoints.map((s, idx) => (
-                        <li key={idx}>{s}</li>
+                  {isInsightsLoading && strongPoints.length === 0 ? (
+                    <div className="space-y-2">
+                      {[0, 1, 2].map((i) => (
+                        <div
+                          key={i}
+                          className="h-10 rounded-lg bg-secondary-background/40 animate-pulse border border-border"
+                        />
                       ))}
-                    </ul>
+                    </div>
+                  ) : strongPoints.length > 0 ? (
+                    <div className="space-y-2">
+                      {strongPoints.map((s, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-start gap-3 p-3 rounded-lg border border-green-500/20 bg-green-500/5"
+                        >
+                          <div className="mt-0.5 h-5 w-5 rounded-full bg-green-500/20 text-green-400 flex items-center justify-center text-xs">
+                            ✓
+                          </div>
+                          <div className="text-sm text-text-secondary">{s}</div>
+                        </div>
+                      ))}
+                    </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center text-center py-6">
                       <img
@@ -267,16 +314,47 @@ export const NewDashboard: React.FC = () => {
                     </div>
                   )}
                 </div>
+
                 <div className="rounded-2xl bg-primary-background/80 backdrop-blur border border-border p-6">
-                  <div className="text-text font-semibold mb-3">
-                    Skills to Strengthen
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-text font-semibold">
+                      Skills to Strengthen
+                    </div>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] border border-border text-text-secondary flex items-center gap-1">
+                      <svg
+                        className="h-3 w-3 text-white"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        aria-hidden="true"
+                      >
+                        <path d="M12 2l2.5 5.5L20 10l-5.5 2.5L12 18l-2.5-5.5L4 10l5.5-2.5L12 2z" />
+                      </svg>
+                      <span>AI</span>
+                    </span>
                   </div>
-                  {skillsToImprove.length > 0 ? (
-                    <ul className="list-disc pl-5 text-sm text-text-secondary space-y-2">
-                      {skillsToImprove.map((s, idx) => (
-                        <li key={idx}>{s}</li>
+                  {isInsightsLoading && skillsToImprove.length === 0 ? (
+                    <div className="space-y-2">
+                      {[0, 1, 2].map((i) => (
+                        <div
+                          key={i}
+                          className="h-10 rounded-lg bg-secondary-background/40 animate-pulse border border-border"
+                        />
                       ))}
-                    </ul>
+                    </div>
+                  ) : skillsToImprove.length > 0 ? (
+                    <div className="space-y-2">
+                      {skillsToImprove.map((s, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-start gap-3 p-3 rounded-lg border border-amber-500/20 bg-amber-500/5"
+                        >
+                          <div className="mt-0.5 h-5 w-5 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-xs">
+                            ⚠
+                          </div>
+                          <div className="text-sm text-text-secondary">{s}</div>
+                        </div>
+                      ))}
+                    </div>
                   ) : (
                     <div className="flex flex-col items-center justify-center text-center py-6">
                       <img
