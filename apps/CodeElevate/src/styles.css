@@ -78,7 +78,7 @@ body {
 }
 
 .markdown-content code {
-  @apply px-1 py-0.5 bg-gray-800 rounded text-xs;
+  @apply px-1 py-0.5 bg-gray-800 rounded text-text text-xs;
 }
 
 .markdown-content pre {
@@ -86,7 +86,7 @@ body {
 }
 
 .markdown-content pre code {
-  @apply bg-transparent p-0 block text-xs;
+  @apply bg-transparent p-0 block text-text text-xs;
 }
 
 .markdown-content p {

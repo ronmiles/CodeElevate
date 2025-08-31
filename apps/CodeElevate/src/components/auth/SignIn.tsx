@@ -42,10 +42,7 @@ export const SignIn: React.FC = () => {
           <span className="text-2xl font-bold text-text">CodeElevate</span>
         </div>
         <div>
-          <h2 className="auth-title">Login</h2>
-          <p className="auth-subtitle">
-            Sign in to continue your learning journey
-          </p>
+          <h2 className="auth-title">Sign in</h2>
         </div>
 
         <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
