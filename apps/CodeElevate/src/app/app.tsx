@@ -14,7 +14,9 @@ import { DashboardEntry } from '../components/dashboard/DashboardEntry';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
 import { LearningGoalPage } from '../pages/LearningGoalPage';
+import NewGoalPage from '../pages/NewGoalPage';
 import ExercisePage from '../pages/ExercisePage';
+import AllGoalsPage from '../pages/AllGoalsPage';
 
 const queryClient = new QueryClient();
 
@@ -36,36 +38,60 @@ export function App() {
       <ThemeProvider>
         <AuthProvider>
           <Router>
-            <Routes>
-              <Route path="/signin" element={<SignIn />} />
-              <Route path="/signup" element={<SignUp />} />
-              <Route
-                path="/dashboard"
-                element={
-                  <PrivateRoute>
-                    <DashboardEntry />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/goal/:goalId/checkpoint/:checkpointId"
-                element={
-                  <PrivateRoute>
-                    <LearningGoalPage />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/exercise/:exerciseId"
-                element={
-                  <PrivateRoute>
-                    <ExercisePage />
-                  </PrivateRoute>
-                }
-              />
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
+            <div className="min-h-screen bg-background">
+              <Routes>
+                <Route path="/signin" element={<SignIn />} />
+                <Route path="/signup" element={<SignUp />} />
+                <Route
+                  path="/dashboard"
+                  element={
+                    <PrivateRoute>
+                      <DashboardEntry />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/goal/:goalId/checkpoint/:checkpointId"
+                  element={
+                    <PrivateRoute>
+                      <LearningGoalPage />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/dashboard/new-goal"
+                  element={
+                    <PrivateRoute>
+                      <NewGoalPage />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/dashboard/goals"
+                  element={
+                    <PrivateRoute>
+                      <AllGoalsPage />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/exercise/:exerciseId"
+                  element={
+                    <PrivateRoute>
+                      <ExercisePage />
+                    </PrivateRoute>
+                  }
+                />
+                <Route
+                  path="/"
+                  element={<Navigate to="/dashboard" replace />}
+                />
+                <Route
+                  path="*"
+                  element={<Navigate to="/dashboard" replace />}
+                />
+              </Routes>
+            </div>
           </Router>
         </AuthProvider>
       </ThemeProvider>

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { getIsNewDesign } from '../utils/featureFlags';
 
 type Theme = 'light' | 'dark';
 
@@ -31,7 +32,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({
   // Apply feature-flagged new dashboard palette at the root (html element)
   useEffect(() => {
     const applyNewDashboardFlag = () => {
-      const isNew = localStorage.getItem('dashboard:useNew') === 'true';
+      const isNew = getIsNewDesign();
       document.documentElement.classList.toggle('new-dashboard', isNew);
     };
     applyNewDashboardFlag();

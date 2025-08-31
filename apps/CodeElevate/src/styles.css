@@ -20,6 +20,25 @@ html.new-dashboard {
   --secondary-background: rgb(33, 32, 34);
 }
 
+/* Apply background logo to all full-screen backgrounds under the new design */
+html.new-dashboard .min-h-screen.bg-background {
+  background-image: url('./assets/background-logo.svg');
+  background-repeat: no-repeat;
+  background-position: right -120px bottom -80px;
+  background-size: 60%;
+}
+
+/* Fallback: apply background at body level so all routes inherit it */
+html.new-dashboard body {
+  background-image: url('./assets/background-logo.svg');
+  background-repeat: no-repeat;
+  background-position: right -120px bottom -80px;
+  background-size: 60%;
+}
+
+/* Apply background logo to full-screen containers under the new design */
+/* background logo handled by App overlay when new design is enabled */
+
 body {
   background-color: var(--background);
   color: var(--text);

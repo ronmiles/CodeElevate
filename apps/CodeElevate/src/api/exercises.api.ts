@@ -55,6 +55,25 @@ export interface ProgressStats {
   byDifficulty: Record<string, { total: number; completed: number }>;
 }
 
+export interface ProgressWithExercise extends Progress {
+  exercise: {
+    id: string;
+    title: string;
+    description?: string;
+    difficulty: 'EASY' | 'MEDIUM' | 'HARD' | 'EXPERT';
+    language: string;
+    goal: {
+      id: string;
+      title: string;
+    };
+  };
+}
+
+export interface UserProgressResponse {
+  progress: ProgressWithExercise[];
+  stats: ProgressStats;
+}
+
 export interface CodeReviewComment {
   lineRange: [number, number];
   type: 'suggestion' | 'error' | 'praise';
@@ -173,14 +192,16 @@ export const exercisesApi = {
     return response.data;
   },
 
-  getUserProgress: async (token: string) => {
+  getUserProgress: async (
+    token: string
+  ): Promise<UserProgressResponse | undefined> => {
     try {
       const response = await api.get('/exercises/progress', {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       });
-      return response.data;
+      return response.data as UserProgressResponse;
     } catch (error) {
       handleApiError(error);
     }

@@ -4,14 +4,13 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ThemeToggle } from '../ThemeToggle';
 import { useAuth } from '../../contexts/AuthContext';
 import logo from '../../assets/logo.svg';
+import { getIsNewDesign } from '../../utils/featureFlags';
 
 export const Navbar: React.FC = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   const { signOut } = useAuth();
-  const isNew =
-    typeof window !== 'undefined' &&
-    localStorage.getItem('dashboard:useNew') === 'true';
+  const isNew = getIsNewDesign();
 
   const outerClasses = isNew
     ? 'bg-secondary-background border-border rounded-full mt-3 max-w-5xl mx-auto'

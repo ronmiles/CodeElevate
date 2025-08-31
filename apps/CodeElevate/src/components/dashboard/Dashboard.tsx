@@ -13,7 +13,7 @@ import {
 import { Navbar } from '../layout/Navbar';
 import { SparkleIcon } from '../common/SparkleIcon';
 import { CustomizationQuestions } from './CustomizationQuestions';
-const LS_KEY = 'dashboard:useNew';
+import { setIsNewDesign } from '../../utils/featureFlags';
 
 type GoalCreationStep = 'form' | 'questions';
 
@@ -312,12 +312,12 @@ export const Dashboard: React.FC = () => {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => {
-                    localStorage.setItem(LS_KEY, 'true');
+                    setIsNewDesign(true);
                     window.location.reload();
                   }}
                   className="px-4 py-2 rounded-lg text-sm font-medium text-text-secondary hover:text-text hover:bg-background border border-border transition-all duration-200"
                 >
-                  Try the new dashboard
+                  Try the New Design
                 </button>
                 <button
                   onClick={() => setIsAddingGoal(true)}
