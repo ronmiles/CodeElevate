@@ -61,24 +61,141 @@ export class GoalsLLMService {
     }`;
 
     try {
-      const response = await this.llmService.generateJson<{
-        questions: Array<{
-          id: string;
-          question: string;
-          type: 'text' | 'select' | 'multiselect';
-          options?: string[];
-        }>;
-      }>(prompt, schema);
+      const response = await this.llmService.generateJson<
+        | {
+            questions?: Array<{
+              id?: string;
+              question: string;
+              type: 'text' | 'select' | 'multiselect';
+              options?: string[];
+            }>;
+          }
+        | Array<{
+            id?: string;
+            question: string;
+            type: 'text' | 'select' | 'multiselect';
+            options?: string[];
+          }>
+      >(prompt, schema);
 
-      return response.questions.map((q, index) => ({
-        id: q.id || `q${index + 1}`,
-        question: q.question,
-        type: q.type,
-        options: q.options,
-      }));
+      const raw: any = response;
+
+      let questions: Array<{
+        id?: string;
+        question: string;
+        type: 'text' | 'select' | 'multiselect';
+        options?: string[];
+      }> = [];
+
+      if (Array.isArray(raw)) {
+        questions = raw;
+      } else if (raw && Array.isArray(raw.questions)) {
+        questions = raw.questions;
+      } else if (raw && raw.data && Array.isArray(raw.data.questions)) {
+        questions = raw.data.questions;
+      }
+
+      const normalized = (questions || [])
+        .filter((q: any) => q && q.question && q.type)
+        .map((q: any, index: number) => ({
+          id: q.id || `q${index + 1}`,
+          question: String(q.question),
+          type: q.type as 'text' | 'select' | 'multiselect',
+          options:
+            q.type === 'select' || q.type === 'multiselect'
+              ? Array.isArray(q.options)
+                ? q.options.map((o: any) => String(o))
+                : undefined
+              : undefined,
+        }));
+
+      if (normalized.length > 0) {
+        return normalized;
+      }
+
+      // Fallback questions if AI response is missing/invalid
+      const fallback: CustomizationQuestion[] = [
+        {
+          id: 'q1',
+          question: 'How comprehensive do you want your learning to be?',
+          type: 'select',
+          options: [
+            'Foundational basics',
+            'Intermediate depth',
+            'In-depth mastery',
+          ],
+        },
+        {
+          id: 'q2',
+          question: 'How much time can you dedicate weekly to practice?',
+          type: 'select',
+          options: ['2-3 hours', '4-6 hours', '7-10 hours', '10+ hours'],
+        },
+        {
+          id: 'q3',
+          question: "What's your current programming experience?",
+          type: 'select',
+          options: ['None', 'Some', 'Experienced'],
+        },
+        {
+          id: 'q4',
+          question: 'Which languages are you comfortable with? (if any)',
+          type: 'multiselect',
+          options: [
+            'JavaScript',
+            'Python',
+            'Java',
+            'C#',
+            'C++',
+            'Go',
+            'TypeScript',
+            'Other (specify)',
+          ],
+        },
+        {
+          id: 'q5',
+          question: 'What would you like to focus on first?',
+          type: 'multiselect',
+          options: [
+            'Core fundamentals',
+            'Problem solving/algorithms',
+            'Building small projects',
+            'Debugging and testing',
+          ],
+        },
+      ];
+
+      return fallback;
     } catch (error) {
       console.error('Error generating customization questions:', error);
-      throw new Error('Failed to generate customization questions');
+
+      // Provide a minimal, safe fallback on error as well
+      const fallback: CustomizationQuestion[] = [
+        {
+          id: 'q1',
+          question: 'How comprehensive do you want your learning to be?',
+          type: 'select',
+          options: [
+            'Foundational basics',
+            'Intermediate depth',
+            'In-depth mastery',
+          ],
+        },
+        {
+          id: 'q2',
+          question: 'How much time can you dedicate weekly to practice?',
+          type: 'select',
+          options: ['2-3 hours', '4-6 hours', '7-10 hours', '10+ hours'],
+        },
+        {
+          id: 'q3',
+          question: "What's your current programming experience?",
+          type: 'select',
+          options: ['None', 'Some', 'Experienced'],
+        },
+      ];
+
+      return fallback;
     }
   }
 
